@@ -68,7 +68,10 @@ DAFTAR BAGIAN (SECTIONS):
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Grotesk:wght@700;800&display=swap">
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Grotesk:wght@700;800&display=swap"
+    media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Grotesk:wght@700;800&display=swap"></noscript>
   <style>
     /* ===== 1. TEMA & PALET WARNA (CSS VARIABLES) =====
        Palet Syariah: Royal Purple (#6D28D9 / #7C3AED), Deep Violet (#3B0764), Gold Yellow (#FACC15 / #D97706).
@@ -121,6 +124,20 @@ DAFTAR BAGIAN (SECTIONS):
       margin: 0;
       min-height: 100dvh;
       overflow-x: hidden;
+      background-color: #FAF8FF;
+      color: var(--tx);
+      font: 500 15px/1.55 var(--f-b);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      contain: strict;
+      transform: translateZ(0);
       background-color: #F6F3FF;
       background-image:
         radial-gradient(ellipse 95% 52% at 50% -8%, rgba(109, 40, 217, 0.15), transparent 72%),
@@ -129,11 +146,6 @@ DAFTAR BAGIAN (SECTIONS):
         url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Cg fill='none' stroke='%236D28D9' stroke-opacity='0.06' stroke-width='1'%3E%3Crect x='24' y='24' width='48' height='48'/%3E%3Crect x='24' y='24' width='48' height='48' transform='rotate(45 48 48)'/%3E%3Ccircle cx='48' cy='48' r='11' stroke='%23D97706' stroke-opacity='0.09'/%3E%3C/g%3E%3C/svg%3E"),
         linear-gradient(180deg, #FAF8FF 0%, #F3EEFF 56%, #FBF8EE 100%);
       background-size: 100% 100%, 100% 100%, 100% 100%, 96px 96px, 100% 100%;
-      background-attachment: fixed;
-      color: var(--tx);
-      font: 500 15px/1.55 var(--f-b);
-      -webkit-font-smoothing: antialiased;
-      text-rendering: optimizeLegibility
     }
 
     .w {
@@ -292,9 +304,7 @@ DAFTAR BAGIAN (SECTIONS):
     .ov {
       position: fixed;
       inset: 0;
-      background: rgba(24, 7, 46, .74);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
+      background: rgba(24, 7, 46, .78);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -2787,12 +2797,10 @@ DAFTAR BAGIAN (SECTIONS):
       gap: clamp(3px, 0.9cqw, 8px);
       padding: clamp(4px, 1.2cqw, 14px) clamp(6px, 1.6cqw, 14px);
       overflow: hidden;
-      background-color: rgba(248, 245, 255, 0.62);
+      background-color: rgba(248, 245, 255, 0.90);
       background-image: linear-gradient(rgba(109, 40, 217, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(109, 40, 217, 0.08) 1px, transparent 1px);
       background-size: 4.6cqw 4.6cqw;
       container-type: normal;
-      -webkit-backdrop-filter: blur(8px);
-      backdrop-filter: blur(8px);
       border: 1.5px solid rgba(109, 40, 217, 0.32)
     }
 
@@ -4089,11 +4097,11 @@ DAFTAR BAGIAN (SECTIONS):
       LAND.forEach(t => { if (e[t]) { const s = PROP.filter(a => e[t][a] > 0).map(a => `${e[t][a]} ${AS[a].n.toLowerCase()}`); if (s.length) p.push(`Petak ${t}: ${s.join(" + ")}`) } });
       return p.length ? `<div class="mu sm">Properti per petak: ${p.join(" · ")}</div>` : ""
     };
-    function fixCfg(g) {
+    function fixCfg(g, keepBlankPass) {
       if (!g || !g.cfg) return g; const c = g.cfg;
       if (!c.ver || c.ver < 2) { c.inc = clone(CFG0.inc); c.rent = clone(CFG0.rent); if (c.price && c.price.rumah == 3000000) c.price.rumah = CFG0.price.rumah; delete c.g; c.ver = 2 }
       if (c.ver < 3) { c.ver = 3; if (c.start == 5000000) c.start = CFG0.start; c.startBonus = CFG0.startBonus }
-      if (!c.adminPass) c.adminPass = "1234";
+      if (!keepBlankPass && !c.adminPass) c.adminPass = "1234";
       return g
     }
     const OV = {
@@ -4124,6 +4132,7 @@ DAFTAR BAGIAN (SECTIONS):
     const sg = n => (n > 0 ? "+" : "") + rp(n);
     const pc = n => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n).toLocaleString("id-ID", { maximumFractionDigits: 2 }) + "%";
     const esc = x => String(x == null ? "" : x).replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+    const safeId = x => String(x == null ? "" : x).replace(/[^a-zA-Z0-9_-]/g, "");
     const parseRp = s => +(String(s || "").replace(/\D/g, "")) || 0;
     const tm = t => new Date(t).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 
@@ -4132,7 +4141,7 @@ DAFTAR BAGIAN (SECTIONS):
        - G: Objek state permainan aktif (tim, putaran, giliran, pasar, kartu terbuka, timer)
        - L: Riwayat log transaksi dan peristiwa
        - U: State UI lokal antarmuka (tab aktif, filter dek, modal terbuka, input form)
-       - detectAdmin() / doAdminLogin(): Otentikasi sesi fasilitator (sessionStorage "lb_admin_ok")
+       - detectAdmin() / doAdminLogin(): Otentikasi sesi fasilitator (sessionStorage "lb_admin_ok" + cookie HttpOnly backend)
        - saveG(): Menyimpan state ke localStorage dan POST ke server (/api/state)
        - pollState(): Polling realtime sinkronisasi data dari server lokal */
     const PAGE_ROLE = "admin";
@@ -4142,7 +4151,7 @@ DAFTAR BAGIAN (SECTIONS):
     const D = () => CARDS || DEFAULT_CARDS;
 
     /* Sinkronisasi client-server & penyimpanan lokal */
-    let wq = Promise.resolve(), SRV_VER = 0, pendW = 0, pollTm = null;
+    let wq = Promise.resolve(), SRV_VER = 0, SRV_AUTH = null, pendW = 0, pollTm = null;
     try { UID = localStorage.getItem("lb_uid"); if (!UID) { UID = "u_" + uid(); localStorage.setItem("lb_uid", UID) } } catch (e) { UID = "u_" + uid() }
     function isAdminPage() {
       if (PAGE_ROLE == "admin") return true;
@@ -4155,6 +4164,15 @@ DAFTAR BAGIAN (SECTIONS):
       if (!isAdminPage()) { ADMIN_AUTH = false; return false }
       try { ADMIN_AUTH = sessionStorage.getItem("lb_admin_ok") == "1" } catch (e) { ADMIN_AUTH = false }
       return ADMIN_AUTH;
+    }
+    function handleAuthExpired(msg) {
+      if (!ADMIN_AUTH && !ADMIN) return;
+      ADMIN_AUTH = false; ADMIN = false; SRV_AUTH = false; SRV_VER = 0;
+      try { sessionStorage.removeItem("lb_admin_ok") } catch (e) { }
+      if (G && G.cfg && MODE == "db") { G.cfg.adminPass = ""; lsSave() }
+      U.tab = "papan";
+      if (msg) toast(msg);
+      rr();
     }
     function clearAdmErr(el) { if (el && el.setCustomValidity) el.setCustomValidity(""); if (U.admErr) { U.admErr = ""; const e = $("adm_err"); if (e) e.textContent = "" } }
     function togAdminPw() { const el = $("adm_pw"), v = el ? el.value : ""; U.showPw = !U.showPw; rr(); const el2 = $("adm_pw"); if (el2) { el2.value = v; el2.focus() } }
@@ -4171,7 +4189,7 @@ DAFTAR BAGIAN (SECTIONS):
       };
       if (location.protocol != "file:") {
         try {
-          const r = await fetch("/api/admin-login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pw }) });
+          const r = await fetch("/api/admin-login", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pw }) });
           const isJson = !r.headers || typeof r.headers.get !== "function" || (r.headers.get("content-type") || "").includes("json");
           if (r.status === 404 || r.status === 405 || !isJson) {
             ok = checkLocal();
@@ -4194,33 +4212,59 @@ DAFTAR BAGIAN (SECTIONS):
         if (el) { if (el.setCustomValidity) el.setCustomValidity(errMsg); el.focus() }
         return;
       }
-      if (usedBackend) {
-        MODE = "db";
-        await pollState();
-        startPollLoop();
-      }
       U.admErr = ""; U.showPw = false;
       ADMIN_AUTH = true; ADMIN = true;
       try { sessionStorage.setItem("lb_admin_ok", "1") } catch (err) { }
-      toast("Berhasil masuk ke Panel Fasilitator.");
-      rr();
+      if (usedBackend) {
+        MODE = "db";
+        SRV_VER = 0;
+        SRV_AUTH = true;
+        await pollState();
+        startPollLoop();
+      }
+      if (ADMIN_AUTH) {
+        toast("Berhasil masuk ke Panel Fasilitator.");
+        rr();
+      } else if (btn) {
+        btn.disabled = false;
+      }
     }
     function logoutAdmin() {
-      ADMIN_AUTH = false; ADMIN = false;
+      ADMIN_AUTH = false; ADMIN = false; SRV_AUTH = false; SRV_VER = 0;
       try { sessionStorage.removeItem("lb_admin_ok") } catch (e) { }
+      if (G && G.cfg && MODE == "db") { G.cfg.adminPass = ""; lsSave() }
+      if (MODE == "db" && location.protocol != "file:") {
+        fetch("/api/admin-login", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "logout" }) }).catch(() => { });
+      }
       U.tab = "papan";
       toast("Anda telah keluar dari sesi Admin.");
       rr();
     }
-    function lsSave() { try { localStorage.setItem("lks2", JSON.stringify({ G, L, CARDS })) } catch (e) { } }
+    function lsSave() {
+      try {
+        let gOut = G;
+        if (MODE == "db" && G && G.cfg && G.cfg.adminPass) {
+          gOut = clone(G);
+          gOut.cfg.adminPass = "";
+        }
+        localStorage.setItem("lks2", JSON.stringify({ G: gOut, L, CARDS }));
+      } catch (e) { }
+    }
     function onErr(e) { const c = e && e.code; if (c == "invalid_argument") { RO = true; toast("Perubahan ditolak. Akun Anda hanya punya akses lihat.") } else if (c == "quota_exceeded") toast("Penyimpanan permainan penuh."); else if (c == "revoked") toast("Akses ke permainan ini dicabut."); else if (c) toast("Koneksi bermasalah, coba lagi sebentar lagi.") }
     function apiPost(body) {
       pendW++;
-      wq = wq.then(() => fetch("/api/state", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
-        .then(r => r.ok ? r.json() : null)
+      wq = wq.then(() => fetch("/api/state", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+        .then(r => {
+          if (r && r.status === 401) {
+            handleAuthExpired("Sesi admin berakhir. Silakan masuk kembali.");
+            return null;
+          }
+          return r && r.ok ? r.json() : null;
+        })
         .then(d => {
           if (d && d.version) SRV_VER = d.version;
           if (d && d.storage) SRV_STORAGE = d.storage;
+          if (d && typeof d.auth === "boolean") SRV_AUTH = d.auth;
         })
         .catch(() => { })
         .finally(() => { pendW = Math.max(0, pendW - 1) }));
@@ -4247,9 +4291,11 @@ DAFTAR BAGIAN (SECTIONS):
       if (MODE != "db" || pollBusy || pendW > 0 || spinAnim || (typeof document !== "undefined" && document.hidden)) return;
       pollBusy = true;
       try {
-        const url = SRV_VER ? `/api/state?v=${encodeURIComponent(SRV_VER)}` : "/api/state";
-        const hdrs = SRV_VER ? { "If-None-Match": `"lb-v${SRV_VER}"` } : {};
-        const r = await fetch(url, { cache: "no-store", headers: hdrs });
+        const etagScope = ADMIN_AUTH ? "adm" : "pub";
+        const qVer = SRV_VER + (ADMIN_AUTH && SRV_AUTH ? "-adm" : "");
+        const url = SRV_VER ? `/api/state?v=${encodeURIComponent(qVer)}` : "/api/state";
+        const hdrs = SRV_VER ? { "If-None-Match": `"lb-v${SRV_VER}-${etagScope}"` } : {};
+        const r = await fetch(url, { cache: "no-store", credentials: "same-origin", headers: hdrs });
         const stHdr = r && r.headers && typeof r.headers.get === "function" ? r.headers.get("x-lb-storage") : null;
         if (stHdr) SRV_STORAGE = stHdr;
         if (!r || r.status === 304) return;
@@ -4257,13 +4303,20 @@ DAFTAR BAGIAN (SECTIONS):
         const d = await r.json();
         if (pendW > 0 || spinAnim) return;
         if (d && d.storage) SRV_STORAGE = d.storage;
-        if (d && d.version !== SRV_VER) {
-          SRV_VER = d.version || 0;
-          G = d.G ? fixCfg(d.G) : null;
-          L = Array.isArray(d.L) ? d.L : [];
-          CARDS = Array.isArray(d.CARDS) && d.CARDS.length ? d.CARDS : null;
+        if (d && typeof d.auth === "boolean") SRV_AUTH = d.auth;
+        const verChanged = d && d.version !== SRV_VER;
+        const authLost = !!(d && d.auth === false && isAdminPage() && ADMIN_AUTH);
+        if (verChanged || authLost) {
+          if (d) SRV_VER = d.version || 0;
+          G = d && d.G ? fixCfg(d.G, d.auth === false) : null;
+          L = d && Array.isArray(d.L) ? d.L : [];
+          CARDS = d && Array.isArray(d.CARDS) && d.CARDS.length ? d.CARDS : null;
           lsSave();
-          render();
+          if (authLost) {
+            handleAuthExpired("Sesi admin berakhir. Silakan masuk kembali.");
+          } else {
+            render();
+          }
         }
       } catch (e) { } finally {
         pollBusy = false;
@@ -4307,15 +4360,20 @@ DAFTAR BAGIAN (SECTIONS):
         try {
           const ac = typeof AbortController !== "undefined" ? new AbortController() : null;
           const tmId = ac ? setTimeout(() => { try { ac.abort() } catch (e) { } }, 4500) : null;
-          const r = await fetch("/api/state", { cache: "no-store", signal: ac ? ac.signal : undefined });
+          const r = await fetch("/api/state", { cache: "no-store", credentials: "same-origin", signal: ac ? ac.signal : undefined });
           if (tmId) clearTimeout(tmId);
           if (r && r.ok && (!r.headers || typeof r.headers.get !== "function" || (r.headers.get("content-type") || "").includes("json"))) {
             const d = await r.json();
             MODE = "db";
             if (d && d.storage) SRV_STORAGE = d.storage;
+            if (d && typeof d.auth === "boolean") SRV_AUTH = d.auth;
+            if (d && d.auth === false && isAdminPage() && ADMIN_AUTH) {
+              ADMIN_AUTH = false; ADMIN = false;
+              try { sessionStorage.removeItem("lb_admin_ok") } catch (err) { }
+            }
             SRV_VER = d.version || 0;
             CARDS = Array.isArray(d.CARDS) && d.CARDS.length ? d.CARDS : null;
-            G = d.G ? fixCfg(d.G) : mkDefaultGame();
+            G = d.G ? fixCfg(d.G, d.auth === false) : mkDefaultGame();
             L = Array.isArray(d.L) ? d.L : [];
             lsSave();
             autoJoinFromUrl();
@@ -4968,7 +5026,7 @@ DAFTAR BAGIAN (SECTIONS):
       const g = clone(G), c = g.cfg; c.start = mval("c_start"); c.startBonus = mval("c_sb"); c.dd = mval("c_dd"); c.ins = mval("c_ins"); c.debtMax = mval("c_debt");
       const pwEl = $("c_apw") || $("c_apw_quick");
       if (pwEl) {
-        c.adminPass = (pwEl.value || "").trim() || "1234";
+        c.adminPass = (pwEl.value || "").trim() || c.adminPass || "1234";
         if ($("c_apw_quick")) $("c_apw_quick").value = c.adminPass;
       }
       AK.forEach(a => { c.price[a] = mval("c_p_" + a) || c.price[a]; if (INC.includes(a)) c.inc[a] = mval("c_v_" + a); else c.rent[a] = mval("c_v_" + a) });
@@ -5027,7 +5085,7 @@ DAFTAR BAGIAN (SECTIONS):
 
     /* ===== Excel ===== */
     const SH = { Positif: ["Judul", "Opsi A", "Opsi B"], Negatif: ["Judul", "Nominal (Rp)", "Subjudul", "Opsi A", "Opsi B", "Pesan hikmah"], Tantangan: ["Judul", "Efek 1", "Efek 2", "Efek 3", "Efek 4", "Efek 5"], Kuis: ["Judul", "Pertanyaan", "Pilihan A", "Pilihan B", "Pilihan C", "Pilihan D", "Jawaban benar (A/B/C/D)", "Hadiah benar (Rp)", "Penalti salah (Rp)"] };
-    let xl = null; function xlsxLib() { if (window.XLSX) return Promise.resolve(window.XLSX); if (!xl) xl = new Promise((res, rej) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload = () => res(window.XLSX); s.onerror = () => { xl = null; rej(new Error("x")) }; document.head.appendChild(s) }); return xl }
+    let xl = null; function xlsxLib() { if (window.XLSX) return Promise.resolve(window.XLSX); if (!xl) xl = new Promise((res, rej) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.crossOrigin = "anonymous"; s.referrerPolicy = "no-referrer"; s.onload = () => res(window.XLSX); s.onerror = () => { xl = null; rej(new Error("x")) }; document.head.appendChild(s) }); return xl }
     async function saveFile(name, blob) {
       let dl = null; try { if (window.claude && typeof claude.use == "function") dl = await claude.use("downloads") } catch (e) { }
       if (dl) { try { await dl.save({ filename: name, data: blob }); toast("File dikirim ke perangkat Anda.") } catch (e) { toast("Unduhan dibatalkan.") } return }
@@ -5500,7 +5558,7 @@ DAFTAR BAGIAN (SECTIONS):
       if (isMine) h += `<div class="rs"><button onclick="leaveTeam()">Keluar dari tim</button></div>`;
       h += `<h3>Riwayat ${esc(T.name)}</h3>` + logList(L.filter(e => e.gid == G.gid && e.ch && e.ch.teams && e.ch.teams[id]), id); return h
     }
-    function joinV() { return `<section class="box join" style="max-width:520px;margin:24px auto"><h1>Gabung ke tim</h1><p class="mu">Pilih tim Anda dan masukkan kode 4 angka dari admin. Setelah bergabung, Anda bisa memilih opsi kartu, membeli aset, dan menyelesaikan giliran dari perangkat ini.</p>${G.order.map(id => `<form class="jrow" action="/api/state" method="POST" onsubmit="joinTeamForm(event,'${id}')"><label for="pin_${id}"><b>${esc(G.teams[id].name)}</b></label><input id="pin_${id}" name="pin" type="text" inputmode="numeric" pattern="\\d{4}" maxlength="4" autocomplete="one-time-code" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" required placeholder="Kode 4 angka" oninput="clearPinErr(this)"><button type="submit" class="wbtn">Gabung</button></form>`).join("") || `<p class="mu">Belum ada tim.</p>`}</section>` }
+    function joinV() { return `<section class="box join" style="max-width:520px;margin:24px auto"><h1>Gabung ke tim</h1><p class="mu">Pilih tim Anda dan masukkan kode 4 angka dari admin. Setelah bergabung, Anda bisa memilih opsi kartu, membeli aset, dan menyelesaikan giliran dari perangkat ini.</p>${G.order.map(id => { const sid = safeId(id); return `<form class="jrow" action="/api/state" method="POST" onsubmit="joinTeamForm(event,'${sid}')"><label for="pin_${sid}"><b>${esc(G.teams[id].name)}</b></label><input id="pin_${sid}" name="pin" type="text" inputmode="numeric" pattern="\\d{4}" maxlength="4" autocomplete="one-time-code" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" required placeholder="Kode 4 angka" oninput="clearPinErr(this)"><button type="submit" class="wbtn">Gabung</button></form>`; }).join("") || `<p class="mu">Belum ada tim.</p>`}</section>` }
 
     function marketV() {
       let h = `<h1>Pasar aset</h1><p class="mu">Aset dibeli dari Bank dengan harga tetap. Investasi memberi hasil setiap tim melewati Start, sedangkan properti memberi sewa saat pemain lain menginjak kotak properti.</p><div class="mk">`;
@@ -5828,7 +5886,8 @@ DAFTAR BAGIAN (SECTIONS):
         if (AC.state == "suspended") AC.resume(); if (MUS) musicStart()
       } catch (e) { } return AC
     }
-    document.addEventListener("pointerdown", audio);
+    function unlockAudio() { if (!SND && !MUS) return; const a = audio(); if (a && a.state === "running") document.removeEventListener("pointerdown", unlockAudio); }
+    document.addEventListener("pointerdown", unlockAudio, { passive: true });
     function applyAud() { if (!AC) return; const t = AC.currentTime; SG.gain.setTargetAtTime(SND ? VS : 0, t, .03); MG.gain.setTargetAtTime(MUS ? VM * .5 : 0, t, .08) }
     function tone(f, t, d, ty, v, dest) { const a = audio(); if (!a || !SG) return; try { const o = a.createOscillator(), g = a.createGain(), s = a.currentTime + t; o.type = ty || "square"; o.frequency.setValueAtTime(f, s); g.gain.setValueAtTime(0.0001, s); g.gain.exponentialRampToValueAtTime(v || .07, s + .008); g.gain.exponentialRampToValueAtTime(0.0001, s + d); o.connect(g); g.connect(dest || SG); o.start(s); o.stop(s + d + .03) } catch (e) { } }
     function noise(t, d, fq, q, v, dest, sweep) { const a = audio(); if (!a || !NB) return; try { const s = a.currentTime + t, n = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); n.buffer = NB; f.type = "bandpass"; f.frequency.setValueAtTime(fq, s); if (sweep) f.frequency.exponentialRampToValueAtTime(sweep, s + d); f.Q.value = q || 1; g.gain.setValueAtTime(0.0001, s); g.gain.exponentialRampToValueAtTime(v || .1, s + Math.min(.01, d / 3)); g.gain.exponentialRampToValueAtTime(0.0001, s + d); n.connect(f); f.connect(g); g.connect(dest || SG); n.start(s, Math.random() * .5); n.stop(s + d + .03) } catch (e) { } }
@@ -5902,10 +5961,11 @@ DAFTAR BAGIAN (SECTIONS):
     }
     function animateSpin(s) {
       const el = $("wheelRot"), dur = calm() ? 300 : 3400, w0 = wheelRot; spinTo(s.n); spinAnim = true; spinPre = false; sndSpin(dur, wheelRot - w0, w0);
-      if (el) { void el.getBoundingClientRect(); el.style.transition = `transform ${dur}ms cubic-bezier(.1,.75,.12,1)`; el.style.transform = `rotate(${wheelRot}deg)` }
+      if (el) { el.style.willChange = "transform"; void el.getBoundingClientRect(); el.style.transition = `transform ${dur}ms cubic-bezier(.1,.75,.12,1)`; el.style.transform = `rotate(${wheelRot}deg)` }
       setTimeout(() => stepPawn(s), dur + 150)
     }
     async function stepPawn(s) {
+      const wr = $("wheelRot"); if (wr) wr.style.willChange = "";
       spinAnim = false; pendR = false; let p = s.from;
       for (let i = 0; i < s.n; i++) { p = (p + 1) % 24; shown[s.tid] = p; sndStep(i); U.force = true; render(); await wait(260) }
       delete shown[s.tid]; sndLand(); U.force = true; render();

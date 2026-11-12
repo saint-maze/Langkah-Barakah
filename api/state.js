@@ -1,4 +1,13 @@
-const { STORAGE_KIND, getStatePacket, applyAction, sendJson, sendNotModified, parseJsonBody } = require("./_store");
+const {
+  STORAGE_KIND,
+  getStatePacket,
+  applyAction,
+  checkMutationOrigin,
+  clearAdminCookieHeaders,
+  sendJson,
+  sendNotModified,
+  parseJsonBody
+} = require("./_store");
 
 function getQueryVer(req) {
   if (req && req.query && req.query.v != null) return String(req.query.v).trim();
@@ -14,34 +23,58 @@ function getQueryVer(req) {
 
 module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") {
-    return sendJson(res, 200, { ok: true });
+    return sendJson(res, 200, { ok: true }, {}, req);
   }
   if (req.method === "GET") {
     try {
-      const pkt = await getStatePacket();
+      const pkt = await getStatePacket({ req });
+      const etag = pkt.viewEtag || pkt.etag;
       const hdrs = {
-        ETag: pkt.etag,
+        ETag: etag,
         "X-LB-Storage": pkt.storage,
         "X-LB-Cache": pkt.cache
       };
       const inm = String((req.headers && req.headers["if-none-match"]) || "").trim();
       const qv = getQueryVer(req);
-      if ((inm && (inm === pkt.etag || inm === `W/${pkt.etag}`)) || (qv && qv === String(pkt.version))) {
-        return sendNotModified(res, hdrs);
+      const scopeTag = `${pkt.version}-${pkt.isAdmin ? "adm" : "pub"}`;
+      const verMatch = qv && (qv === scopeTag || (!pkt.isAdmin && qv === String(pkt.version)));
+      if ((inm && (inm === etag || inm === `W/${etag}`)) || verMatch) {
+        return sendNotModified(res, hdrs, req);
       }
-      return sendJson(res, 200, pkt.json, hdrs);
+      return sendJson(res, 200, pkt.viewJson || pkt.json, hdrs, req);
     } catch (e) {
-      return sendJson(res, 500, { ok: false, error: "Gagal memuat state permainan." });
+      return sendJson(res, 500, { ok: false, error: "Gagal memuat state permainan." }, {}, req);
     }
   }
   if (req.method === "POST") {
+    const org = checkMutationOrigin(req);
+    if (!org.ok) {
+      return sendJson(res, org.code, org, { "X-LB-Storage": STORAGE_KIND }, req);
+    }
     try {
       const body = await parseJsonBody(req);
-      const resData = await applyAction(body);
-      return sendJson(res, resData.code || 200, resData, { "X-LB-Storage": resData.storage || STORAGE_KIND });
+      if (body && body.action === "logout") {
+        return sendJson(res, 200, { ok: true, status: "logged_out" }, {
+          "Set-Cookie": clearAdminCookieHeaders(req),
+          "Clear-Site-Data": '"cookies"',
+          "X-LB-Storage": STORAGE_KIND
+        }, req);
+      }
+      const resData = await applyAction(body, req);
+      const hdrs = { "X-LB-Storage": resData.storage || STORAGE_KIND };
+      if (resData.cookieHeader) {
+        hdrs["Set-Cookie"] = resData.cookieHeader;
+        delete resData.cookieHeader;
+      }
+      if (resData.retryAfter) {
+        hdrs["Retry-After"] = String(resData.retryAfter);
+      }
+      return sendJson(res, resData.code || 200, resData, hdrs, req);
     } catch (e) {
-      return sendJson(res, 400, { ok: false, status: "error", error: "JSON tidak valid." });
+      const status = e && e.statusCode === 413 ? 413 : 400;
+      const msg = status === 413 ? "Ukuran payload terlalu besar." : "JSON tidak valid.";
+      return sendJson(res, status, { ok: false, status: "error", error: msg }, {}, req);
     }
   }
-  return sendJson(res, 405, { ok: false, error: "Method not allowed" });
+  return sendJson(res, 405, { ok: false, error: "Method not allowed" }, {}, req);
 };
