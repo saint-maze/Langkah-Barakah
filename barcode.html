@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Akses Pindai Tim — Langkah Barakah</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Grotesk:wght@700;800&display=swap" rel="stylesheet">
+<script src="qrcode.min.js"></script>
+<style>
+:root{
+  color-scheme:light;
+  scrollbar-gutter:stable;
+  /* Brand Core Tokens for assertions: #E13A26, #831613, #FEED65 */
+  --crim:#C52818;
+  --crim-raw:#E13A26;
+  --deep:#831613;
+  --yel:#D97706;
+  --yel-raw:#FEED65;
+  --bg:#F8F6F0;
+  --cd:#FFFFFF;
+  --sf:#FFFDF8;
+  --ink:#C52818;
+  --tx:#1C1917;
+  --mu:#57534E;
+  --bd:#E2DACB;
+  --shd:#D4C7B5;
+  --wl:#DC2626;
+  --pos:#15803D;
+  --r:14px;
+  --sh1:0 4px 16px rgba(100,75,40,.08);
+  --sh2:0 12px 32px rgba(100,75,40,.12);
+  --f-d:'Space Grotesk',system-ui,-apple-system,sans-serif;
+  --f-b:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg) radial-gradient(1400px 700px at 50% -120px, rgba(217,119,6,.10), transparent 70%) no-repeat;
+  color:var(--tx);
+  font:500 15px/1.55 var(--f-b);
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 48px}
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+  flex-wrap:wrap;
+  padding:18px 24px;
+  margin-bottom:20px;
+  background:linear-gradient(135deg,#831613 0%,#5A0F0D 100%);
+  border:1px solid rgba(254,237,101,.3);
+  border-bottom:3px solid var(--crim);
+  border-radius:14px;
+  box-shadow:var(--sh2);
+}
+.brand{font-family:var(--f-d);font-weight:800;font-size:1.6rem;color:#FEED65;letter-spacing:-.02em}
+.sub{font-size:.88rem;color:#FCEFD2;font-weight:600;margin-top:2px}
+.btn{
+  font:700 .88rem var(--f-b);
+  padding:9px 16px;
+  border-radius:8px;
+  border:1.5px solid var(--bd);
+  background:var(--cd);
+  color:var(--tx);
+  cursor:pointer;
+  box-shadow:var(--sh1);
+  text-decoration:none;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  transition:all .12s ease;
+}
+.btn:hover{filter:brightness(1.05)}
+.btn:active{transform:translateY(1px)}
+.btn.yel{background:var(--yel);color:#FFFFFF;font-weight:800;border-color:var(--yel)}
+.btn.wl{background:var(--crim);color:#fff;font-weight:800;border-color:var(--deep)}
+.box{
+  background:rgba(255,255,255,0.92);
+  border:1.5px solid rgba(180,140,75,0.28);
+  border-radius:var(--r);
+  padding:18px 20px;
+  margin-bottom:24px;
+  box-shadow:var(--sh1);
+}
+.cfg{display:grid;grid-template-columns:1fr 140px auto;gap:12px;align-items:end}
+@media(max-width:640px){.cfg{grid-template-columns:1fr}}
+label{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:.84rem;color:#57534E}
+input{
+  font:700 .95rem var(--f-b);
+  padding:9px 12px;
+  border:1.5px solid #D6CEBE;
+  border-radius:8px;
+  background:#FFFFFF;
+  color:#1C1917;
+  font-variant-numeric:tabular-nums;
+}
+input:focus-visible{outline:2px solid var(--yel);outline-offset:1px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px}
+.tcard{
+  background:var(--cd);
+  border:2px solid var(--bd);
+  border-radius:14px;
+  padding:20px;
+  box-shadow:var(--sh2);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  gap:12px;
+  color:var(--tx);
+}
+.tbadge{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 16px;
+  border-radius:999px;
+  border:1.5px solid var(--deep);
+  font-family:var(--f-d);
+  font-weight:800;
+  font-size:1.05rem;
+  background:var(--deep);
+  color:var(--yel);
+}
+.dot{width:12px;height:12px;border-radius:50%;border:1.5px solid #fff;display:inline-block}
+.pinbox{background:var(--sf);border:1.5px dashed var(--bd);border-radius:10px;padding:8px 14px;width:100%}
+.pinlbl{font-size:.74rem;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.06em}
+.pinval{font-family:var(--f-d);font-weight:800;font-size:2rem;letter-spacing:.15em;color:var(--crim);font-variant-numeric:tabular-nums;line-height:1.15}
+.qrbox{
+  background:#fff;
+  padding:12px;
+  border-radius:10px;
+  border:1.5px solid var(--bd);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:194px;
+  min-height:194px;
+}
+.url{
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:.75rem;
+  color:var(--deep);
+  background:var(--sf);
+  padding:6px 10px;
+  border-radius:6px;
+  border:1px solid var(--bd);
+  width:100%;
+  word-break:break-all;
+}
+.acts{display:flex;gap:8px;width:100%}
+.acts .btn{flex:1;justify-content:center;font-size:.84rem;padding:8px 10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <header class="top">
+  <div>
+   <div class="brand" style="display:inline-flex;align-items:center;gap:10px"><svg class="lb-logo" width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="display:inline-block;vertical-align:middle;flex-shrink:0;filter:drop-shadow(0 2px 4px rgba(59,7,100,0.4))"><defs><linearGradient id="lbGoldBc" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FDE047"/><stop offset="50%" stop-color="#FACC15"/><stop offset="100%" stop-color="#D97706"/></linearGradient><linearGradient id="lbPurpleBc" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#7C3AED"/><stop offset="50%" stop-color="#6D28D9"/><stop offset="100%" stop-color="#3B0764"/></linearGradient><radialGradient id="lbCoreBc" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#FEF08A"/><stop offset="60%" stop-color="#FACC15"/><stop offset="100%" stop-color="#B45309"/></radialGradient></defs><circle cx="24" cy="24" r="21" stroke="url(#lbGoldBc)" stroke-width="1.8" opacity="0.85" stroke-dasharray="2 3"/><circle cx="24" cy="24" r="19" stroke="url(#lbPurpleBc)" stroke-width="1.2" opacity="0.9"/><rect x="9.5" y="9.5" width="29" height="29" rx="3" fill="url(#lbPurpleBc)" stroke="url(#lbGoldBc)" stroke-width="1.8"/><rect x="9.5" y="9.5" width="29" height="29" rx="3" transform="rotate(45 24 24)" fill="url(#lbPurpleBc)" stroke="url(#lbGoldBc)" stroke-width="1.8" opacity="0.96"/><circle cx="24" cy="24" r="10.5" fill="#2E1065" stroke="url(#lbGoldBc)" stroke-width="1.4"/><path d="M24 6.5L26 21H22L24 6.5Z" fill="url(#lbGoldBc)"/><path d="M24 41.5L22 27H26L24 41.5Z" fill="url(#lbGoldBc)"/><path d="M6.5 24L21 22V26L6.5 24Z" fill="url(#lbGoldBc)"/><path d="M41.5 24L27 26V22L41.5 24Z" fill="url(#lbGoldBc)"/><path d="M11.6 11.6L22.2 21.2L20.8 22.6L11.6 11.6Z" fill="url(#lbGoldBc)" opacity="0.75"/><path d="M36.4 36.4L25.8 26.8L27.2 25.4L36.4 36.4Z" fill="url(#lbGoldBc)" opacity="0.75"/><path d="M36.4 11.6L26.8 22.2L25.4 20.8L36.4 11.6Z" fill="url(#lbGoldBc)" opacity="0.75"/><path d="M11.6 36.4L21.2 25.8L22.6 27.2L11.6 36.4Z" fill="url(#lbGoldBc)" opacity="0.75"/><circle cx="24" cy="24" r="4.2" fill="url(#lbCoreBc)" stroke="#3B0764" stroke-width="1"/><circle cx="24" cy="24" r="1.6" fill="#FFFFFF"/></svg><span>Langkah Barakah · Akses Pindai Tim</span></div>
+   <div class="sub">Pindai QR menggunakan kamera ponsel atau masukkan kode PIN pada menu Tim.</div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+   <a class="btn" href="/">Beranda</a>
+   <a class="btn yel" href="/admin">Panel Fasilitator</a>
+  </div>
+ </header>
+
+ <div class="box">
+  <div class="cfg">
+   <label>Alamat Host / IP Server
+    <input id="ipIn" type="text" placeholder="Contoh: 192.168.1.10" oninput="renderCards()">
+   </label>
+   <label>Port
+    <input id="portIn" type="text" placeholder="8080" oninput="renderCards()">
+   </label>
+   <button class="btn wl" onclick="loadState()">Muat Ulang</button>
+  </div>
+ </div>
+
+ <div id="grid" class="grid"></div>
+</div>
+
+<script>
+const PCOL=["#E13A26","#1E5FBF","#1E8E4B","#D97706","#831613","#0E8A99","#C2185B","#5E8C31"];
+let G=null;
+const esc=x=>String(x==null?"":x).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+
+function initHost(){
+ const qIp=new URLSearchParams(location.search).get("ip");
+ const h=location.hostname;
+ const isLocal=!h||h==="localhost"||h==="127.0.0.1";
+ document.getElementById("ipIn").value=qIp||(isLocal?"192.168.1.10":h);
+ document.getElementById("portIn").value=isLocal?(location.port||"8080"):(location.port||"");
+}
+
+function getBase(){
+ if(location.protocol==="file:"){
+  return location.href.replace(/barcode\.html.*$/,"play.html");
+ }
+ // Staging or production domain check
+ if(location.hostname!=="localhost"&&location.hostname!=="127.0.0.1"&&location.hostname!==""){
+  return `${location.origin}/play`;
+ }
+ const ip=(document.getElementById("ipIn").value||"localhost").trim();
+ const port=(document.getElementById("portIn").value||"").trim();
+ return `http://${ip}${port?":"+port:""}/play`;
+}
+
+async function loadState(){
+ try{
+  const r=await fetch("/api/state",{cache:"no-store"});
+  if(r.ok){
+   const d=await r.json();
+   if(d&&d.G)G=d.G;
+  }
+ }catch(e){}
+ if(!G){
+  try{
+   const x=JSON.parse(localStorage.getItem("lks2")||"null");
+   if(x&&x.G)G=x.G;
+  }catch(e){}
+ }
+ renderCards();
+}
+
+function renderCards(){
+ const el=document.getElementById("grid");
+ const base=getBase();
+ const order=(G&&G.order&&G.order.length)?G.order:["t1","t2","t3","t4"];
+ const teams=(G&&G.teams)||{
+  t1:{id:"t1",name:"Tim 1",pin:"1111",members:[]},
+  t2:{id:"t2",name:"Tim 2",pin:"2222",members:[]},
+  t3:{id:"t3",name:"Tim 3",pin:"3333",members:[]},
+  t4:{id:"t4",name:"Tim 4",pin:"4444",members:[]}
+ };
+ el.innerHTML=order.map((id,i)=>{
+  const T=teams[id]||{id,name:"Tim "+(i+1),pin:String((i+1)*1111),members:[]};
+  const sep=base.includes("?")?"&":"?";
+  const url=`${base}${sep}join=${encodeURIComponent(id)}&pin=${encodeURIComponent(T.pin)}`;
+  const col=PCOL[i%PCOL.length];
+  return `<div class="tcard">
+   <div class="tbadge"><span class="dot" style="background:${col}"></span>${esc(T.name)}</div>
+   <div class="pinbox">
+    <div class="pinlbl">Kode PIN Tim</div>
+    <div class="pinval">${esc(T.pin)}</div>
+   </div>
+   <div class="qrbox" id="qr_${esc(id)}"></div>
+   <div class="url">${esc(url)}</div>
+   <div class="acts">
+    <button class="btn" onclick="copyUrl('${esc(url)}',this)">Salin Tautan</button>
+    <a class="btn yel" href="${esc(url)}" target="_blank">Buka Tim</a>
+   </div>
+  </div>`;
+ }).join("");
+
+ if(typeof QRCode!=="undefined"){
+  order.forEach((id,i)=>{
+   const T=teams[id]||{id,pin:String((i+1)*1111)};
+   const sep=base.includes("?")?"&":"?";
+   const url=`${base}${sep}join=${encodeURIComponent(id)}&pin=${encodeURIComponent(T.pin)}`;
+   const box=document.getElementById("qr_"+id);
+   if(box){
+    box.innerHTML="";
+    new QRCode(box,{text:url,width:170,height:170,colorDark:"#831613",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
+   }
+  });
+ }
+}
+
+function copyUrl(u,btn){
+ if(navigator.clipboard){
+  navigator.clipboard.writeText(u).then(()=>{
+   const old=btn.textContent;btn.textContent="✓ Tersalin";
+   setTimeout(()=>btn.textContent=old,1500);
+  });
+ }
+}
+
+initHost();
+loadState();
+setInterval(loadState,3500);
+</script>
+</body>
+</html>

@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Langkah Barakah — Simulasi Finansial Syariah</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="three.min.js"></script>
+<script>
+if (typeof THREE === "undefined") {
+  document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+}
+</script>
+<style>
+:root {
+  color-scheme: light;
+  /* Brand Core Tokens for assertions: #E13A26, #831613, #FEED65 */
+  --crim-raw: #E13A26;
+  --crim: #C52818;
+  --crim-hover: #DC2626;
+  --deep: #831613;
+  --yel-raw: #FEED65;
+  --yel: #D97706;
+  --yel-hover: #B45309;
+  --bg: #F8F6F0;
+  --surface: rgba(255, 255, 255, 0.88);
+  --surface-border: rgba(180, 140, 75, 0.28);
+  --tx: #1C1917;
+  --tx-sec: #57534E;
+  --tx-mut: #78716C;
+  --f-d: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --f-b: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+html, body {
+  min-height: 100%;
+  font-family: var(--f-b);
+  background: var(--bg);
+  color: var(--tx);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+#bgCanvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+}
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 75% 35%, rgba(217, 119, 6, 0.12) 0%, transparent 60%),
+    radial-gradient(circle at 20% 80%, rgba(197, 40, 24, 0.08) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(248, 246, 240, 0.55) 0%, rgba(244, 240, 230, 0.88) 100%);
+}
+.shell {
+  position: relative;
+  z-index: 2;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--surface-border);
+}
+.brand {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+}
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+.lb-logo {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 6px rgba(109, 40, 217, 0.28));
+}
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 6px 10px;
+  background: rgba(109, 40, 217, 0.08);
+  border: 1px solid rgba(109, 40, 217, 0.22);
+  border-radius: 999px;
+  margin-bottom: 16px;
+  font-family: var(--f-d);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #5B21B6;
+}
+.brand-name {
+  font-family: var(--f-d);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--tx);
+  line-height: 1.15;
+}
+.brand-sub {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--yel);
+}
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.nav-btn {
+  font-family: var(--f-b);
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--tx-sec);
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
+  transition: all 0.15s ease;
+}
+.nav-btn:hover {
+  color: var(--tx);
+  border-color: var(--crim);
+}
+.nav-btn.primary {
+  background: var(--deep);
+  color: var(--yel);
+  border-color: var(--deep);
+}
+.nav-btn.primary:hover {
+  background: var(--crim);
+  color: #fff;
+}
+.main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  align-items: center;
+  gap: 48px;
+  padding: 60px 0 40px;
+}
+@media (max-width: 860px) {
+  .main {
+    grid-template-columns: 1fr;
+    padding: 32px 0;
+    gap: 32px;
+  }
+}
+.hero-content {
+  max-width: 540px;
+}
+.hero-headline {
+  font-family: var(--f-d);
+  font-size: clamp(2.2rem, 4.8vw, 3.4rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  color: var(--tx);
+  margin-bottom: 16px;
+}
+.hero-headline span {
+  color: var(--yel);
+}
+.hero-desc {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--tx-sec);
+  margin-bottom: 32px;
+}
+.join-panel {
+  background: var(--surface);
+  border: 1.5px solid var(--surface-border);
+  border-radius: 14px;
+  padding: 28px;
+  max-width: 440px;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 36px 0 rgba(100, 75, 40, 0.10), 0 2px 8px 0 rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.join-title {
+  font-family: var(--f-d);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--tx);
+  margin-bottom: 6px;
+}
+.join-sub {
+  font-size: 0.86rem;
+  color: var(--tx-mut);
+  margin-bottom: 20px;
+}
+.field-group {
+  margin-bottom: 16px;
+}
+.label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tx-sec);
+  margin-bottom: 8px;
+}
+.pin-input {
+  width: 100%;
+  font-family: var(--f-d);
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: 0.4em;
+  text-align: center;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 2px solid #E2DACB;
+  background: #FFFFFF;
+  color: #C52818;
+  outline: none;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+.pin-input:focus {
+  border-color: #D97706;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.2);
+}
+.pin-input::placeholder {
+  color: #D6CEBE;
+  letter-spacing: 0.25em;
+}
+.btn-submit {
+  width: 100%;
+  font-family: var(--f-b);
+  font-size: 1rem;
+  font-weight: 800;
+  padding: 14px 20px;
+  border-radius: 8px;
+  border: none;
+  background: var(--crim);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(197, 40, 24, 0.35);
+  transition: background 0.15s ease, transform 0.08s ease;
+}
+.btn-submit:hover {
+  background: var(--crim-hover);
+  transform: translateY(-1px);
+}
+.feedback {
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin-top: 12px;
+  display: none;
+}
+.feedback.err {
+  display: block;
+  background: rgba(225, 58, 38, 0.15);
+  border: 1px solid var(--crim);
+  color: #FFA294;
+}
+.feedback.ok {
+  display: block;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid #22C55E;
+  color: #86EFAC;
+}
+.panel-footer-links {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--surface-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.82rem;
+}
+.panel-footer-links a {
+  color: var(--tx-sec);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+.panel-footer-links a:hover {
+  color: var(--yel);
+}
+.side-brief {
+  border-left: 2px solid var(--surface-border);
+  padding-left: 28px;
+}
+@media (max-width: 860px) {
+  .side-brief {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--surface-border);
+    padding-top: 24px;
+  }
+}
+.brief-heading {
+  font-family: var(--f-d);
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--yel);
+  margin-bottom: 12px;
+}
+.brief-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.brief-list li {
+  font-size: 0.9rem;
+  color: var(--tx-sec);
+  line-height: 1.5;
+}
+.brief-list li strong {
+  color: var(--tx);
+  font-weight: 700;
+}
+.footer {
+  margin-top: auto;
+  padding-top: 24px;
+  border-top: 1px solid var(--surface-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: var(--tx-mut);
+}
+.footer a {
+  color: var(--tx-sec);
+  text-decoration: none;
+}
+.footer a:hover {
+  color: var(--yel);
+}
+.footer .wm {
+  font-family: var(--f-d);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  color: var(--tx-mut);
+  opacity: 0.55;
+  user-select: none;
+}
+</style>
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+<div class="backdrop"></div>
+
+<div class="shell">
+
+  <nav class="nav">
+    <a href="/" class="brand">
+      <svg class="lb-logo" width="34" height="34" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="lbGoldNav" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FDE047"/>
+            <stop offset="50%" stop-color="#FACC15"/>
+            <stop offset="100%" stop-color="#D97706"/>
+          </linearGradient>
+          <linearGradient id="lbPurpleNav" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#7C3AED"/>
+            <stop offset="50%" stop-color="#6D28D9"/>
+            <stop offset="100%" stop-color="#3B0764"/>
+          </linearGradient>
+          <radialGradient id="lbCoreNav" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FEF08A"/>
+            <stop offset="60%" stop-color="#FACC15"/>
+            <stop offset="100%" stop-color="#B45309"/>
+          </radialGradient>
+        </defs>
+        <circle cx="24" cy="24" r="21" stroke="url(#lbGoldNav)" stroke-width="1.8" opacity="0.85" stroke-dasharray="2 3"/>
+        <circle cx="24" cy="24" r="19" stroke="url(#lbPurpleNav)" stroke-width="1.2" opacity="0.9"/>
+        <rect x="9.5" y="9.5" width="29" height="29" rx="3" fill="url(#lbPurpleNav)" stroke="url(#lbGoldNav)" stroke-width="1.8"/>
+        <rect x="9.5" y="9.5" width="29" height="29" rx="3" transform="rotate(45 24 24)" fill="url(#lbPurpleNav)" stroke="url(#lbGoldNav)" stroke-width="1.8" opacity="0.96"/>
+        <circle cx="24" cy="24" r="10.5" fill="#2E1065" stroke="url(#lbGoldNav)" stroke-width="1.4"/>
+        <path d="M24 6.5L26 21H22L24 6.5Z" fill="url(#lbGoldNav)"/>
+        <path d="M24 41.5L22 27H26L24 41.5Z" fill="url(#lbGoldNav)"/>
+        <path d="M6.5 24L21 22V26L6.5 24Z" fill="url(#lbGoldNav)"/>
+        <path d="M41.5 24L27 26V22L41.5 24Z" fill="url(#lbGoldNav)"/>
+        <path d="M11.6 11.6L22.2 21.2L20.8 22.6L11.6 11.6Z" fill="url(#lbGoldNav)" opacity="0.75"/>
+        <path d="M36.4 36.4L25.8 26.8L27.2 25.4L36.4 36.4Z" fill="url(#lbGoldNav)" opacity="0.75"/>
+        <path d="M36.4 11.6L26.8 22.2L25.4 20.8L36.4 11.6Z" fill="url(#lbGoldNav)" opacity="0.75"/>
+        <path d="M11.6 36.4L21.2 25.8L22.6 27.2L11.6 36.4Z" fill="url(#lbGoldNav)" opacity="0.75"/>
+        <circle cx="24" cy="24" r="4.2" fill="url(#lbCoreNav)" stroke="#3B0764" stroke-width="1"/>
+        <circle cx="24" cy="24" r="1.6" fill="#FFFFFF"/>
+      </svg>
+      <div class="brand-text">
+        <span class="brand-name">Langkah Barakah</span>
+        <span class="brand-sub">Simulasi Papan Finansial Syariah</span>
+      </div>
+    </a>
+  </nav>
+
+  <main class="main">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <svg class="lb-logo" width="22" height="22" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="lbGoldHero" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FDE047"/>
+              <stop offset="50%" stop-color="#FACC15"/>
+              <stop offset="100%" stop-color="#D97706"/>
+            </linearGradient>
+            <linearGradient id="lbPurpleHero" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#7C3AED"/>
+              <stop offset="50%" stop-color="#6D28D9"/>
+              <stop offset="100%" stop-color="#3B0764"/>
+            </linearGradient>
+            <radialGradient id="lbCoreHero" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#FEF08A"/>
+              <stop offset="60%" stop-color="#FACC15"/>
+              <stop offset="100%" stop-color="#B45309"/>
+            </radialGradient>
+          </defs>
+          <circle cx="24" cy="24" r="21" stroke="url(#lbGoldHero)" stroke-width="1.8" opacity="0.85" stroke-dasharray="2 3"/>
+          <circle cx="24" cy="24" r="19" stroke="url(#lbPurpleHero)" stroke-width="1.2" opacity="0.9"/>
+          <rect x="9.5" y="9.5" width="29" height="29" rx="3" fill="url(#lbPurpleHero)" stroke="url(#lbGoldHero)" stroke-width="1.8"/>
+          <rect x="9.5" y="9.5" width="29" height="29" rx="3" transform="rotate(45 24 24)" fill="url(#lbPurpleHero)" stroke="url(#lbGoldHero)" stroke-width="1.8" opacity="0.96"/>
+          <circle cx="24" cy="24" r="10.5" fill="#2E1065" stroke="url(#lbGoldHero)" stroke-width="1.4"/>
+          <path d="M24 6.5L26 21H22L24 6.5Z" fill="url(#lbGoldHero)"/>
+          <path d="M24 41.5L22 27H26L24 41.5Z" fill="url(#lbGoldHero)"/>
+          <path d="M6.5 24L21 22V26L6.5 24Z" fill="url(#lbGoldHero)"/>
+          <path d="M41.5 24L27 26V22L41.5 24Z" fill="url(#lbGoldHero)"/>
+          <path d="M11.6 11.6L22.2 21.2L20.8 22.6L11.6 11.6Z" fill="url(#lbGoldHero)" opacity="0.75"/>
+          <path d="M36.4 36.4L25.8 26.8L27.2 25.4L36.4 36.4Z" fill="url(#lbGoldHero)" opacity="0.75"/>
+          <path d="M36.4 11.6L26.8 22.2L25.4 20.8L36.4 11.6Z" fill="url(#lbGoldHero)" opacity="0.75"/>
+          <path d="M11.6 36.4L21.2 25.8L22.6 27.2L11.6 36.4Z" fill="url(#lbGoldHero)" opacity="0.75"/>
+          <circle cx="24" cy="24" r="4.2" fill="url(#lbCoreHero)" stroke="#3B0764" stroke-width="1"/>
+          <circle cx="24" cy="24" r="1.6" fill="#FFFFFF"/>
+        </svg>
+        <span>Langkah Barakah</span>
+      </div>
+      <h1 class="hero-headline">Simulasi Papan <span>Keuangan Syariah</span></h1>
+      <p class="hero-desc">Aplikasi pendamping papan permainan Langkah Barakah untuk mencatat arus kas tim, portofolio sukuk, properti sewa, dividen saham syariah, dan perhitungan zakat mal.</p>
+
+      <div class="join-panel">
+        <h2 class="join-title">Akses Tim Peserta</h2>
+        <p class="join-sub">Masukkan 4 digit PIN tim untuk membuka dashboard permainan.</p>
+
+        <form id="joinForm" onsubmit="handleJoin(event)">
+          <div class="field-group">
+            <label class="label" for="pinInput">PIN 4 Digit Tim</label>
+            <input
+              id="pinInput"
+              class="pin-input"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              maxlength="4"
+              placeholder="0000"
+              autocomplete="off"
+              autofocus
+              oninput="handlePinTyping(this)"
+            >
+          </div>
+          <button type="submit" id="btnSubmit" class="btn-submit">Buka Dashboard Tim</button>
+          <div id="feedback" class="feedback"></div>
+        </form>
+
+        <div class="panel-footer-links">
+          <a href="/play">Pilih tim manual</a>
+          <a href="/admin">Panel Fasilitator &rarr;</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-brief">
+      <h3 class="brief-heading">Aturan Permainan</h3>
+      <ul class="brief-list">
+        <li><strong>Aset Riil</strong>: Pembelian Sukuk negara, properti sewa produktif, dan saham syariah.</li>
+        <li><strong>Akad Kemitraan</strong>: Skema bagi hasil Mudharabah dan Musyarakah tanpa bunga atau denda riba.</li>
+        <li><strong>Zakat Mal</strong>: Pemotongan kewajiban zakat 2,5% dari saldo kas yang melewati nisab tiap putaran tahunan.</li>
+        <li><strong>Buku Besar Digital</strong>: Neraca kas, dividen saham, dan sewa properti dihitung otomatis oleh sistem.</li>
+      </ul>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div>Langkah Barakah &middot; Media Pembelajaran Keuangan Syariah</div>
+    <div class="wm">kerorin</div>
+  </footer>
+
+</div>
+
+<script>
+let stateCache = null;
+
+async function fetchState() {
+  try {
+    const res = await fetch("/api/state", { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.G) {
+        stateCache = data.G;
+        return;
+      }
+    }
+  } catch (e) {}
+
+  try {
+    const local = JSON.parse(localStorage.getItem("lks2") || "null");
+    if (local && local.G) {
+      stateCache = local.G;
+      return;
+    }
+  } catch (e) {}
+
+  stateCache = {
+    teams: {
+      t1: { id: "t1", name: "Tim 1", pin: "1111" },
+      t2: { id: "t2", name: "Tim 2", pin: "2222" },
+      t3: { id: "t3", name: "Tim 3", pin: "3333" },
+      t4: { id: "t4", name: "Tim 4", pin: "4444" }
+    }
+  };
+}
+
+function handlePinTyping(input) {
+  input.value = input.value.replace(/[^0-9]/g, "");
+  const fb = document.getElementById("feedback");
+  if (fb) {
+    fb.style.display = "none";
+    fb.className = "feedback";
+    fb.textContent = "";
+  }
+  if (input.value.length === 4) {
+    document.getElementById("btnSubmit").click();
+  }
+}
+
+async function handleJoin(e) {
+  e.preventDefault();
+  const input = document.getElementById("pinInput");
+  const fb = document.getElementById("feedback");
+  const pin = (input ? input.value : "").trim();
+
+  if (!pin) {
+    if (fb) {
+      fb.className = "feedback err";
+      fb.textContent = "Masukkan 4 digit PIN tim.";
+    }
+    if (input) input.focus();
+    return;
+  }
+
+  if (!stateCache) {
+    await fetchState();
+  }
+
+  if (stateCache && stateCache.teams) {
+    for (const [tid, team] of Object.entries(stateCache.teams)) {
+      if (String(team.pin).trim() === pin) {
+        if (fb) {
+          fb.className = "feedback ok";
+          fb.textContent = `Menghubungkan ke ${team.name}...`;
+        }
+        try {
+          sessionStorage.setItem("lb_last_team", tid);
+        } catch (err) {}
+        setTimeout(() => {
+          const targetBase = (location.protocol === "file:") ? "play.html" : "/play";
+        location.href = `${targetBase}?join=${encodeURIComponent(tid)}&pin=${encodeURIComponent(pin)}`;
+        }, 250);
+        return;
+      }
+    }
+  }
+
+  if (fb) {
+    fb.className = "feedback err";
+    fb.textContent = "PIN tidak terdaftar. Periksa kode tim pada layar utama.";
+  }
+  if (input) input.select();
+}
+
+fetchState();
+
+/* ===== Three.js Scene: Studio Dinar & Ivory Die ===== */
+function initScene() {
+  if (typeof THREE === "undefined") return;
+  const canvas = document.getElementById("bgCanvas");
+  if (!canvas) return;
+
+  let gl;
+  try {
+    gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+  } catch (e) {}
+  if (!gl) return;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 80);
+  camera.position.set(0, 0, 14);
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas: canvas,
+    alpha: true,
+    antialias: true,
+    powerPreference: "high-performance"
+  });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+
+  // Lighting: luminous daylight key light + soft amber & crimson glow
+  const ambient = new THREE.AmbientLight(0xfff8ee, 0.95);
+  scene.add(ambient);
+
+  const keyLight = new THREE.DirectionalLight(0xfff3e0, 1.3);
+  keyLight.position.set(6, 8, 7);
+  scene.add(keyLight);
+
+  const rimLight = new THREE.PointLight(0xc52818, 1.8, 28);
+  rimLight.position.set(-6, -4, 4);
+  scene.add(rimLight);
+
+  const goldGlow = new THREE.PointLight(0xd97706, 1.6, 25);
+  goldGlow.position.set(5, 3, 5);
+  scene.add(goldGlow);
+
+  const group = new THREE.Group();
+  scene.add(group);
+
+  // Procedural Ivory Die Face
+  // Procedural Islamic Silver Dirham Coin Face
+  function createDirhamFace() {
+    const cv = document.createElement("canvas");
+    cv.width = 512;
+    cv.height = 512;
+    const ctx = cv.getContext("2d");
+
+    const grd = ctx.createRadialGradient(256, 256, 30, 256, 256, 250);
+    grd.addColorStop(0, "#FFFFFF");
+    grd.addColorStop(0.45, "#E2E8F0");
+    grd.addColorStop(0.85, "#94A3B8");
+    grd.addColorStop(1, "#475569");
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, 512, 512);
+
+    ctx.lineWidth = 14;
+    ctx.strokeStyle = "#334155";
+    ctx.beginPath();
+    ctx.arc(256, 256, 240, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = "#F8FAFC";
+    ctx.beginPath();
+    ctx.arc(256, 256, 226, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(256, 256);
+    ctx.fillStyle = "rgba(14, 75, 40, 0.75)";
+    ctx.strokeStyle = "#F8FAFC";
+    ctx.lineWidth = 4;
+
+    for (let i = 0; i < 2; i++) {
+      ctx.rotate((Math.PI / 4) * i);
+      ctx.fillRect(-96, -96, 192, 192);
+      ctx.strokeRect(-96, -96, 192, 192);
+    }
+
+    ctx.fillStyle = "#E2E8F0";
+    ctx.beginPath();
+    ctx.arc(0, 0, 52, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#0E4B28";
+    ctx.beginPath();
+    ctx.arc(4, 0, 32, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#E2E8F0";
+    ctx.beginPath();
+    ctx.arc(14, -3, 26, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    return new THREE.CanvasTexture(cv);
+  }
+
+  // Silver Dirham Coin (Aset Riil Syariah)
+  const dirhamFaceTex = createDirhamFace();
+  const dirhamFaceMat = new THREE.MeshStandardMaterial({
+    map: dirhamFaceTex,
+    metalness: 0.92,
+    roughness: 0.18
+  });
+  const dirhamRimMat = new THREE.MeshStandardMaterial({
+    color: 0xCBD5E1,
+    metalness: 0.95,
+    roughness: 0.15
+  });
+
+  const dirhamGeo = new THREE.CylinderGeometry(2.0, 2.0, 0.20, 40);
+  const dirhamMesh = new THREE.Mesh(dirhamGeo, [dirhamRimMat, dirhamFaceMat, dirhamFaceMat]);
+  dirhamMesh.position.set(4.5, -1.8, 1.2);
+  dirhamMesh.rotation.x = Math.PI / 2.8;
+  dirhamMesh.rotation.z = -Math.PI / 8;
+  group.add(dirhamMesh);
+
+  // Procedural Islamic Dinar Coin Face
+  function createDinarFace() {
+    const cv = document.createElement("canvas");
+    cv.width = 512;
+    cv.height = 512;
+    const ctx = cv.getContext("2d");
+
+    const grd = ctx.createRadialGradient(256, 256, 30, 256, 256, 250);
+    grd.addColorStop(0, "#FFF7C2");
+    grd.addColorStop(0.5, "#FEED65");
+    grd.addColorStop(0.85, "#D89C1D");
+    grd.addColorStop(1, "#7D5207");
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, 512, 512);
+
+    ctx.lineWidth = 14;
+    ctx.strokeStyle = "#5E3E04";
+    ctx.beginPath();
+    ctx.arc(256, 256, 240, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = "#FFF7C2";
+    ctx.beginPath();
+    ctx.arc(256, 256, 226, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(256, 256);
+    ctx.fillStyle = "rgba(131, 22, 19, 0.72)";
+    ctx.strokeStyle = "#FFF7C2";
+    ctx.lineWidth = 4;
+
+    for (let i = 0; i < 2; i++) {
+      ctx.rotate((Math.PI / 4) * i);
+      ctx.fillRect(-102, -102, 204, 204);
+      ctx.strokeRect(-102, -102, 204, 204);
+    }
+
+    ctx.fillStyle = "#FEED65";
+    ctx.beginPath();
+    ctx.arc(0, 0, 58, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#831613";
+    ctx.beginPath();
+    ctx.arc(6, 0, 36, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#FEED65";
+    ctx.beginPath();
+    ctx.arc(16, -4, 30, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    return new THREE.CanvasTexture(cv);
+  }
+
+  const dinarFaceTex = createDinarFace();
+  const dinarFaceMat = new THREE.MeshStandardMaterial({
+    map: dinarFaceTex,
+    metalness: 0.85,
+    roughness: 0.22
+  });
+  const dinarRimMat = new THREE.MeshStandardMaterial({
+    color: 0xD89C1D,
+    metalness: 0.9,
+    roughness: 0.2
+  });
+
+  // Large Gold Dinar Coin
+  const coinGeo = new THREE.CylinderGeometry(2.6, 2.6, 0.24, 40);
+  const coinMesh = new THREE.Mesh(coinGeo, [dinarRimMat, dinarFaceMat, dinarFaceMat]);
+  coinMesh.position.set(4.2, 1.8, 0);
+  coinMesh.rotation.x = Math.PI / 3.2;
+  coinMesh.rotation.z = Math.PI / 7;
+  group.add(coinMesh);
+
+  // Active cursor tracking with dynamic tilt and parallax
+  let mouseX = 0, mouseY = 0, curX = 0, curY = 0;
+  let lastActive = Date.now();
+
+  function onPointer(clientX, clientY) {
+    mouseX = (clientX / window.innerWidth - 0.5) * 2.2;
+    mouseY = (clientY / window.innerHeight - 0.5) * 2.2;
+    lastActive = Date.now();
+    start();
+  }
+
+  window.addEventListener("mousemove", (e) => onPointer(e.clientX, e.clientY), { passive: true });
+  window.addEventListener("touchmove", (e) => {
+    if (e.touches && e.touches[0]) onPointer(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  window.addEventListener("deviceorientation", (e) => {
+    if (e.gamma != null && e.beta != null) {
+      mouseX = (Math.max(-40, Math.min(40, e.gamma)) / 40) * 1.8;
+      mouseY = (Math.max(-40, Math.min(40, e.beta - 30)) / 40) * 1.8;
+      lastActive = Date.now();
+      start();
+    }
+  }, { passive: true });
+
+  const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let animId = null;
+  let running = false;
+  let t = 0;
+  let idleCounter = 0;
+
+  function renderFrame() {
+    t += 0.012;
+
+    // Self-rotation & natural floating drift
+    dirhamMesh.rotation.y -= 0.011;
+    dirhamMesh.position.y = -1.8 + Math.sin(t * 1.1) * 0.18;
+
+    coinMesh.rotation.y += 0.013;
+    coinMesh.position.y = 1.8 + Math.cos(t * 1.3) * 0.20;
+
+    // Smooth lerp tracking
+    curX += (mouseX - curX) * 0.065;
+    curY += (mouseY - curY) * 0.065;
+
+    // Noticeable 3D depth: group rotation + individual responsive tilt
+    group.rotation.y = curX * 0.65;
+    group.rotation.x = -curY * 0.55;
+
+    camera.position.x = curX * 2.0;
+    camera.position.y = -curY * 1.6;
+    camera.lookAt(0, 0, 0);
+
+    // Dynamic tilt on twin coins (Dinar Emas & Dirham Perak) responding to cursor
+    dirhamMesh.rotation.x = Math.PI / 2.8 + curY * 0.35;
+    dirhamMesh.rotation.z = -Math.PI / 8 + curX * 0.3;
+    coinMesh.rotation.x = Math.PI / 3.2 + curY * 0.4;
+    coinMesh.rotation.z = Math.PI / 7 + curX * 0.35;
+
+    renderer.render(scene, camera);
+  }
+
+  function tick() {
+    if (!running) return;
+    // Smart idle throttling: throttle frame rate when idle for > 2.5s
+    if (Date.now() - lastActive > 2500) {
+      idleCounter++;
+      if (idleCounter % 3 !== 0) {
+        animId = requestAnimationFrame(tick);
+        return;
+      }
+    } else {
+      idleCounter = 0;
+    }
+    renderFrame();
+    animId = requestAnimationFrame(tick);
+  }
+
+  function start() {
+    if (prefersReduced) {
+      renderFrame();
+      return;
+    }
+    if (!running) {
+      running = true;
+      animId = requestAnimationFrame(tick);
+    }
+  }
+
+  function stop() {
+    if (running) {
+      running = false;
+      if (animId) cancelAnimationFrame(animId);
+    }
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stop();
+    else start();
+  });
+  window.addEventListener("blur", stop);
+  window.addEventListener("focus", start);
+
+  let resizeTimer;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+      if (!running) renderFrame();
+    }, 120);
+  });
+
+  start();
+}
+
+window.addEventListener("DOMContentLoaded", initScene);
+</script>
+</body>
+</html>

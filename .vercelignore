@@ -1,0 +1,9 @@
+*.pptx
+*.xlsx
+*.py
+*.bat
+game_state.json
+__pycache__/
+revisi mas pandu/
+Design Sys/
+.agents/
