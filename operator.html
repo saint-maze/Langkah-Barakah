@@ -4101,28 +4101,29 @@ DAFTAR BAGIAN (SECTIONS):
       const el = $("adm_pw"), pw = (el ? el.value : "").trim();
       if (!pw) { U.admErr = "Masukkan kata sandi fasilitator."; rr(); return }
       const btn = $("adm_sub"); if (btn) btn.disabled = true;
-      let ok = false, errMsg = "Kata sandi tidak sesuai.";
-      if (MODE == "local") {
+      let ok = false, errMsg = "Kata sandi tidak sesuai.", usedBackend = false;
+      const checkLocal = () => {
         const cfgPw = (G && G.cfg && G.cfg.adminPass) || "1234";
         const valid = cfgPw == "1234" ? ["1234", "admin123", "admin"] : [cfgPw];
-        ok = valid.includes(pw);
-      } else {
+        return valid.includes(pw);
+      };
+      if (location.protocol != "file:") {
         try {
           const r = await fetch("/api/admin-login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pw }) });
-          if (r.status === 404 || r.status === 405) {
-            const cfgPw = (G && G.cfg && G.cfg.adminPass) || "1234";
-            const valid = cfgPw == "1234" ? ["1234", "admin123", "admin"] : [cfgPw];
-            ok = valid.includes(pw);
+          const isJson = !r.headers || typeof r.headers.get !== "function" || (r.headers.get("content-type") || "").includes("json");
+          if (r.status === 404 || r.status === 405 || !isJson) {
+            ok = checkLocal();
           } else {
             const d = await r.json();
+            usedBackend = true;
             ok = !!(r.ok && d && d.ok);
             if (!ok && d && d.error) errMsg = d.error;
           }
         } catch (err) {
-          const cfgPw = (G && G.cfg && G.cfg.adminPass) || "1234";
-          const valid = cfgPw == "1234" ? ["1234", "admin123", "admin"] : [cfgPw];
-          ok = valid.includes(pw);
+          ok = checkLocal();
         }
+      } else {
+        ok = checkLocal();
       }
       if (!ok) {
         if (btn) btn.disabled = false;
@@ -4130,6 +4131,11 @@ DAFTAR BAGIAN (SECTIONS):
         const errEl = $("adm_err"); if (errEl) errEl.textContent = errMsg;
         if (el) { if (el.setCustomValidity) el.setCustomValidity(errMsg); el.focus() }
         return;
+      }
+      if (usedBackend) {
+        MODE = "db";
+        await pollState();
+        if (!pollTm) pollTm = setInterval(pollState, 2500);
       }
       U.admErr = ""; U.showPw = false;
       ADMIN_AUTH = true; ADMIN = true;
@@ -4164,6 +4170,7 @@ DAFTAR BAGIAN (SECTIONS):
       ["Tim 1", "Tim 2", "Tim 3", "Tim 4"].forEach((n, i) => { const t = blankTeam(n, cfg); t.id = "t" + (i + 1); t.pin = String(1111 * (i + 1)); teams[t.id] = t; order.push(t.id) });
       return { gid: uid(), round: 1, turn: 0, order, teams, stock: clone(cfg.cap), cfg, used: { positif: [], negatif: [], tantangan: [] }, ord: mkOrd(), open: null, spin: null, land: {}, lq: {}, pause: null, pzTot: 0, tgt: null, t0: null, over: false, created: Date.now() };
     }
+    let SRV_STORAGE = null;
     async function pollState() {
       if (MODE != "db" || pendW > 0 || spinAnim || (typeof document !== "undefined" && document.hidden)) return;
       try {
@@ -4171,6 +4178,7 @@ DAFTAR BAGIAN (SECTIONS):
         if (!r.ok || (r.headers && typeof r.headers.get === "function" && !(r.headers.get("content-type") || "").includes("json"))) return;
         const d = await r.json();
         if (pendW > 0 || spinAnim) return;
+        if (d && d.storage) SRV_STORAGE = d.storage;
         if (d && d.version !== SRV_VER) {
           SRV_VER = d.version || 0;
           G = d.G ? fixCfg(d.G) : null;
@@ -4218,19 +4226,20 @@ DAFTAR BAGIAN (SECTIONS):
       if (location.protocol != "file:") {
         try {
           const ac = typeof AbortController !== "undefined" ? new AbortController() : null;
-          const tmId = ac ? setTimeout(() => { try { ac.abort() } catch (e) { } }, 900) : null;
+          const tmId = ac ? setTimeout(() => { try { ac.abort() } catch (e) { } }, 4500) : null;
           const r = await fetch("/api/state", { cache: "no-store", signal: ac ? ac.signal : undefined });
           if (tmId) clearTimeout(tmId);
           if (r && r.ok && (!r.headers || typeof r.headers.get !== "function" || (r.headers.get("content-type") || "").includes("json"))) {
             const d = await r.json();
             MODE = "db";
+            if (d && d.storage) SRV_STORAGE = d.storage;
             SRV_VER = d.version || 0;
             CARDS = Array.isArray(d.CARDS) && d.CARDS.length ? d.CARDS : null;
             G = d.G ? fixCfg(d.G) : mkDefaultGame();
             L = Array.isArray(d.L) ? d.L : [];
             lsSave();
             autoJoinFromUrl();
-            if (!pollTm) pollTm = setInterval(pollState, 1400);
+            if (!pollTm) pollTm = setInterval(pollState, 2500);
             rr();
           }
         } catch (e) { }
@@ -5566,7 +5575,9 @@ DAFTAR BAGIAN (SECTIONS):
     }
     function adminV() {
       if (!ADMIN) return ""; const c = G.cfg; let h = `<div class="adm-hd" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px"><h1 style="margin:0">Panel Operator</h1></div>`;
-      if (MODE == "db") h += `<div class="box" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><b>Akses Pemain (LAN / Wi-Fi)</b><div class="mu">Pemain memindai QR tim atau masuk di menu Tim dengan kode 4 angka.</div></div><a class="wbtn" href="barcode.html" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;min-height:40px">Buka QR &amp; PIN</a></div>`;
+      if (MODE == "db" && SRV_STORAGE === "redis") h += `<div class="box"><b>Backend Cloud aktif (Redis)</b><div class="mu">Kata sandi operator dan status permainan tersinkronisasi lintas perangkat.</div></div>`;
+      else if (MODE == "db" && SRV_STORAGE === "tmp") h += `<div class="warn">Backend Vercel aktif (penyimpanan instance sementara). Sambungkan Upstash Redis di Vercel agar kata sandi &amp; sesi permanen antar cold-start.</div>`;
+      else if (MODE == "db") h += `<div class="box" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><b>Akses Pemain (LAN / Wi-Fi)</b><div class="mu">Pemain memindai QR tim atau masuk di menu Tim dengan kode 4 angka.</div></div><a class="wbtn" href="barcode.html" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;min-height:40px">Buka QR &amp; PIN</a></div>`;
       else h += `<div class="warn">Halaman Admin/Dashboard</div>`;
       h += `<h3>Kata Sandi Operator</h3><div class="box"><p class="mu" style="margin-top:0">Kata sandi untuk masuk halaman Operator.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;align-items:flex-end"><div><label for="c_apw_quick" style="display:block;font-weight:700;color:var(--deep);margin-bottom:6px">Kata Sandi Baru</label><input id="c_apw_quick" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="${esc(c.adminPass || "1234")}" placeholder="Kata sandi baru" style="width:100%;min-height:42px;background:#FFFFFF;color:var(--tx);border:1.5px solid var(--shd)"></div><div><button type="button" class="wbtn" onclick="saveAdminPassQuick()" style="min-height:42px;width:100%;padding:10px 18px">Simpan Kata Sandi</button></div></div></div>`;
       h += `<h3>Sesi &amp; Waktu Permainan</h3><div class="box"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;align-items:center;padding-bottom:14px;border-bottom:1px solid rgba(109,40,217,0.18)"><div><span class="mu sm">Putaran Sesi</span><div style="font-size:1.35rem;font-weight:800;color:var(--deep)">Putaran ke-${G.round} ${G.over ? `<span class="dn" style="font-size:0.9rem">(Selesai)</span>` : `<span class="up" style="font-size:0.9rem">(Aktif)</span>`}</div><div style="display:flex;gap:6px;margin-top:6px"><button class="mini" onclick="setRound(-1)" style="min-height:40px;min-width:40px">− Putaran</button><button class="mini" onclick="setRound(1)" style="min-height:40px;min-width:40px">+ Putaran</button></div></div><div><span class="mu sm">Waktu Berjalan</span><div style="font-size:1.50rem;font-weight:800;color:var(--crim);font-variant-numeric:tabular-nums;margin-top:2px"><span id="gclockAdm">${G.t0 ? fmtT(NOW() - G.t0) : "00:00"}</span></div><div class="mu sm" style="margin-top:2px">Target: ${targetMin()} menit / ${TARGET_YEARS} tahun</div></div><div><span class="mu sm">Kendali Waktu</span><div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="wbtn timer-reset-btn" onclick="resetGameTimer()" style="min-height:40px;padding:8px 16px;font-size:13px;flex:1">↺ Reset 00:00</button>${G.pause ? `<button type="button" class="wbtn" onclick="resumeGame()" style="min-height:40px;padding:8px 14px;font-size:13px">▶ Lanjutkan</button>` : `<button type="button" onclick="pauseGame()" ${G.over ? "disabled" : ""} style="min-height:40px;padding:8px 14px;font-size:13px">⏸ Jeda</button>`}</div></div></div><div class="frm" style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button onclick="openModal({type:'manual'})" style="min-height:40px">Transaksi Manual</button>${G.over ? `<button onclick="reopen()" style="min-height:40px">Buka Lagi</button>` : `<button onclick="endGame()" style="min-height:40px">Akhiri Permainan</button>`}<button onclick="newGame()" style="min-height:40px">Permainan Baru</button></div></div>`;
