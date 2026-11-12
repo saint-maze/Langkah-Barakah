@@ -5596,7 +5596,7 @@ DAFTAR BAGIAN (SECTIONS):
     }
     function adminV() {
       if (!ADMIN) return ""; const c = G.cfg; let h = `<div class="adm-hd" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px"><h1 style="margin:0">Panel Operator</h1></div>`;
-      if (MODE == "db" && SRV_STORAGE === "redis") h += `<div class="box"><b>Backend Cloud aktif (Redis)</b><div class="mu">Kata sandi operator dan status permainan tersinkronisasi lintas perangkat.</div></div>`;
+      if (MODE == "db" && SRV_STORAGE === "redis") h += `<div class="box"><b>dashboard admin</b></div>`;
       else if (MODE == "db" && SRV_STORAGE === "tmp") h += `<div class="warn">Backend Vercel aktif (penyimpanan instance sementara). Sambungkan Upstash Redis di Vercel agar kata sandi &amp; sesi permanen antar cold-start.</div>`;
       else if (MODE == "db") h += `<div class="box" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><b>Akses Pemain (LAN / Wi-Fi)</b><div class="mu">Pemain memindai QR tim atau masuk di menu Tim dengan kode 4 angka.</div></div><a class="wbtn" href="barcode.html" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;min-height:40px">Buka QR &amp; PIN</a></div>`;
       else h += `<div class="warn">Halaman Admin/Dashboard</div>`;
