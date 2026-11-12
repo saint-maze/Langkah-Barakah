@@ -2,11 +2,17 @@ const fs = require("fs");
 
 const TMP_FILE = "/tmp/langkah_barakah_state.json";
 const STATE_KEY = process.env.LB_STATE_KEY || "langkah_barakah:state:v1";
+const VER_KEY = `${STATE_KEY}:ver`;
 const DEFAULT_ADMIN_PASS = (process.env.ADMIN_PASSWORD || "cihuymenang").trim() || "cihuymenang";
 
 const KV_URL = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || "").replace(/\/+$/, "");
 const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || "";
 const HAS_REDIS = !!(KV_URL && KV_TOKEN);
+const STORAGE_KIND = HAS_REDIS ? "redis" : "tmp";
+
+// Warm container L1 cache TTL before checking Redis version key (ms)
+const L1_TTL_MS = Math.max(0, Number(process.env.LB_CACHE_TTL_MS || 800));
+const REDIS_TIMEOUT_MS = Math.max(500, Number(process.env.LB_REDIS_TIMEOUT_MS || 2500));
 
 const DEFAULT_CFG = {
   ver: 3,
@@ -120,33 +126,36 @@ function normalizeStore(raw) {
   return { version, G: g, L: logs, CARDS: cards };
 }
 
-async function kvGet() {
-  if (!HAS_REDIS) return null;
-  const r = await fetch(`${KV_URL}/get/${encodeURIComponent(STATE_KEY)}`, {
-    headers: { Authorization: `Bearer ${KV_TOKEN}` },
-    cache: "no-store"
-  });
-  if (!r.ok) throw new Error(`KV get HTTP ${r.status}`);
-  const d = await r.json();
-  if (!d || d.result == null) return null;
-  return typeof d.result === "string" ? JSON.parse(d.result) : d.result;
+function makeEtag(version) {
+  return `"lb-v${Number(version) || 1}"`;
 }
 
-async function kvSet(state) {
-  if (!HAS_REDIS) return;
-  const r = await fetch(KV_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${KV_TOKEN}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(["SET", STATE_KEY, JSON.stringify(state)])
-  });
-  if (!r.ok) throw new Error(`KV set HTTP ${r.status}`);
+function buildCacheEntry(state) {
+  const norm = normalizeStore(state);
+  const payload = Object.assign({}, norm, { storage: STORAGE_KIND });
+  return {
+    state: norm,
+    version: norm.version,
+    etag: makeEtag(norm.version),
+    json: JSON.stringify(payload),
+    fetchedAt: Date.now()
+  };
+}
+
+function getMemCache() {
+  const cur = global.__LB_STORE__;
+  if (cur && typeof cur === "object" && cur.state && typeof cur.json === "string") {
+    return cur;
+  }
+  return null;
+}
+
+function setMemCache(entry) {
+  global.__LB_STORE__ = entry;
+  return entry;
 }
 
 function readTmp() {
-  if (global.__LB_STORE__) return clone(global.__LB_STORE__);
   try {
     if (fs.existsSync(TMP_FILE)) {
       return JSON.parse(fs.readFileSync(TMP_FILE, "utf8"));
@@ -156,58 +165,164 @@ function readTmp() {
 }
 
 function writeTmp(state) {
-  global.__LB_STORE__ = clone(state);
   try {
     fs.writeFileSync(TMP_FILE, JSON.stringify(state), "utf8");
   } catch (e) { }
 }
 
-async function loadState() {
-  if (HAS_REDIS) {
-    try {
-      const raw = await kvGet();
-      if (raw) {
-        const norm = normalizeStore(raw);
-        writeTmp(norm);
-        return norm;
-      }
-      const def = createDefaultGame();
-      await kvSet(def);
-      writeTmp(def);
-      return def;
-    } catch (e) { }
+async function kvFetch(pathOrPipeline, options = {}) {
+  const ac = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const tm = ac ? setTimeout(() => { try { ac.abort(); } catch (e) { } }, REDIS_TIMEOUT_MS) : null;
+  try {
+    const r = await fetch(`${KV_URL}${pathOrPipeline}`, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${KV_TOKEN}`,
+        ...(options.headers || {})
+      },
+      cache: "no-store",
+      signal: ac ? ac.signal : undefined
+    });
+    if (!r.ok) throw new Error(`KV HTTP ${r.status}`);
+    return await r.json();
+  } finally {
+    if (tm) clearTimeout(tm);
   }
-  const cached = readTmp();
-  if (cached) return normalizeStore(cached);
-  const def = createDefaultGame();
-  writeTmp(def);
-  return def;
+}
+
+async function kvGetVersion() {
+  if (!HAS_REDIS) return null;
+  const d = await kvFetch(`/get/${encodeURIComponent(VER_KEY)}`);
+  if (!d || d.result == null) return null;
+  const parsed = Number(d.result);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+async function kvGetState() {
+  if (!HAS_REDIS) return null;
+  const d = await kvFetch(`/get/${encodeURIComponent(STATE_KEY)}`);
+  if (!d || d.result == null) return null;
+  return typeof d.result === "string" ? JSON.parse(d.result) : d.result;
+}
+
+async function kvSetState(state) {
+  if (!HAS_REDIS) return;
+  const verStr = String(Number(state.version) || 1);
+  const res = await kvFetch("/pipeline", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify([
+      ["SET", STATE_KEY, JSON.stringify(state)],
+      ["SET", VER_KEY, verStr]
+    ])
+  });
+  if (!Array.isArray(res) || res.some(item => item && item.error)) {
+    throw new Error("KV pipeline set failed");
+  }
+}
+
+async function getStatePacket(opts = {}) {
+  const bypassTtl = !!opts.bypassTtl;
+  const mem = getMemCache();
+  const now = Date.now();
+
+  if (mem) {
+    if (!HAS_REDIS) {
+      return { ...mem, storage: STORAGE_KIND, cache: "HIT" };
+    }
+    if (!bypassTtl && now - mem.fetchedAt < L1_TTL_MS) {
+      return { ...mem, storage: STORAGE_KIND, cache: "HIT" };
+    }
+  }
+
+  // Coalesce concurrent cold starts / TTL refreshes into a single Redis roundtrip
+  if (global.__LB_INFLIGHT__) {
+    return await global.__LB_INFLIGHT__;
+  }
+
+  const work = (async () => {
+    if (HAS_REDIS) {
+      try {
+        if (mem) {
+          const remoteVer = await kvGetVersion();
+          if (remoteVer !== null && remoteVer === mem.version) {
+            mem.fetchedAt = Date.now();
+            return { ...mem, storage: STORAGE_KIND, cache: "REVALIDATED" };
+          }
+        }
+        const raw = await kvGetState();
+        if (raw) {
+          const entry = buildCacheEntry(raw);
+          setMemCache(entry);
+          writeTmp(entry.state);
+          // Backfill version key if state existed before VER_KEY was tracked
+          kvFetch(`/set/${encodeURIComponent(VER_KEY)}/${encodeURIComponent(String(entry.version))}`).catch(() => { });
+          return { ...entry, storage: STORAGE_KIND, cache: "MISS" };
+        }
+        const seed = readTmp();
+        const defEntry = buildCacheEntry(seed || createDefaultGame());
+        await kvSetState(defEntry.state);
+        setMemCache(defEntry);
+        writeTmp(defEntry.state);
+        return { ...defEntry, storage: STORAGE_KIND, cache: "MISS" };
+      } catch (e) {
+        if (mem) {
+          mem.fetchedAt = Date.now();
+          return { ...mem, storage: STORAGE_KIND, cache: "STALE_FALLBACK" };
+        }
+      }
+    }
+
+    const disk = readTmp();
+    const entry = buildCacheEntry(disk || createDefaultGame());
+    setMemCache(entry);
+    if (!disk) writeTmp(entry.state);
+    return { ...entry, storage: STORAGE_KIND, cache: disk ? "TMP_HIT" : "TMP_INIT" };
+  })();
+
+  global.__LB_INFLIGHT__ = work;
+  try {
+    return await work;
+  } finally {
+    if (global.__LB_INFLIGHT__ === work) {
+      delete global.__LB_INFLIGHT__;
+    }
+  }
+}
+
+async function loadState(opts = {}) {
+  const pkt = await getStatePacket(opts);
+  return clone(pkt.state);
 }
 
 async function saveState(state) {
-  writeTmp(state);
+  const entry = buildCacheEntry(state);
+  setMemCache(entry);
+  writeTmp(entry.state);
   if (HAS_REDIS) {
     try {
-      await kvSet(state);
+      await kvSetState(entry.state);
     } catch (e) { }
   }
+  return entry;
 }
 
 async function checkAdminLogin(password) {
   const pw = String(password || "").trim();
-  const state = await loadState();
+  const pkt = await getStatePacket();
+  const state = pkt.state;
   const configured = String((state.G && state.G.cfg && state.G.cfg.adminPass) || DEFAULT_ADMIN_PASS).trim();
   const envPass = (process.env.ADMIN_PASSWORD || "").trim();
   const valid = new Set(configured === "1234" ? ["1234", "admin123", "admin"] : [configured]);
   if (envPass) valid.add(envPass);
   if (valid.has(pw)) {
-    return { ok: true, code: 200, status: "ok", storage: HAS_REDIS ? "redis" : "tmp" };
+    return { ok: true, code: 200, status: "ok", storage: STORAGE_KIND };
   }
   return { ok: false, code: 403, status: "forbidden", error: "Kata sandi admin salah." };
 }
 
 async function applyAction(incoming) {
-  const current = await loadState();
+  const current = await loadState({ bypassTtl: true });
   const action = incoming && incoming.action;
 
   if (action === "saveG") {
@@ -255,19 +370,39 @@ async function applyAction(incoming) {
   }
 
   current.version = (Number(current.version) || 1) + 1;
-  const normalized = normalizeStore(current);
-  await saveState(normalized);
-  return { ok: true, code: 200, status: "ok", version: normalized.version, storage: HAS_REDIS ? "redis" : "tmp", state: normalized };
+  const saved = await saveState(current);
+  return {
+    ok: true,
+    code: 200,
+    status: "ok",
+    version: saved.version,
+    storage: STORAGE_KIND,
+    state: saved.state
+  };
 }
 
-function sendJson(res, statusCode, payload) {
-  res.statusCode = statusCode;
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
+function setCommonHeaders(res, extraHeaders = {}) {
   res.setHeader("Cache-Control", "no-store, max-age=0");
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.end(JSON.stringify(payload));
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, If-None-Match");
+  res.setHeader("Access-Control-Expose-Headers", "ETag, X-LB-Storage, X-LB-Cache");
+  for (const [k, v] of Object.entries(extraHeaders)) {
+    if (v !== undefined && v !== null) res.setHeader(k, String(v));
+  }
+}
+
+function sendJson(res, statusCode, payload, extraHeaders = {}) {
+  res.statusCode = statusCode;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  setCommonHeaders(res, extraHeaders);
+  res.end(typeof payload === "string" ? payload : JSON.stringify(payload));
+}
+
+function sendNotModified(res, extraHeaders = {}) {
+  res.statusCode = 304;
+  setCommonHeaders(res, extraHeaders);
+  res.end();
 }
 
 async function parseJsonBody(req) {
@@ -302,11 +437,14 @@ async function parseJsonBody(req) {
 
 module.exports = {
   HAS_REDIS,
+  STORAGE_KIND,
   DEFAULT_ADMIN_PASS,
   loadState,
+  getStatePacket,
   saveState,
   checkAdminLogin,
   applyAction,
   sendJson,
+  sendNotModified,
   parseJsonBody
 };

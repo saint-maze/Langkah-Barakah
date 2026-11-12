@@ -1,4 +1,16 @@
-const { HAS_REDIS, loadState, applyAction, sendJson, parseJsonBody } = require("./_store");
+const { STORAGE_KIND, getStatePacket, applyAction, sendJson, sendNotModified, parseJsonBody } = require("./_store");
+
+function getQueryVer(req) {
+  if (req && req.query && req.query.v != null) return String(req.query.v).trim();
+  const url = (req && req.url) || "";
+  const idx = url.indexOf("?");
+  if (idx === -1) return "";
+  try {
+    return (new URLSearchParams(url.slice(idx + 1)).get("v") || "").trim();
+  } catch (e) {
+    return "";
+  }
+}
 
 module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") {
@@ -6,8 +18,18 @@ module.exports = async function handler(req, res) {
   }
   if (req.method === "GET") {
     try {
-      const state = await loadState();
-      return sendJson(res, 200, Object.assign({}, state, { storage: HAS_REDIS ? "redis" : "tmp" }));
+      const pkt = await getStatePacket();
+      const hdrs = {
+        ETag: pkt.etag,
+        "X-LB-Storage": pkt.storage,
+        "X-LB-Cache": pkt.cache
+      };
+      const inm = String((req.headers && req.headers["if-none-match"]) || "").trim();
+      const qv = getQueryVer(req);
+      if ((inm && (inm === pkt.etag || inm === `W/${pkt.etag}`)) || (qv && qv === String(pkt.version))) {
+        return sendNotModified(res, hdrs);
+      }
+      return sendJson(res, 200, pkt.json, hdrs);
     } catch (e) {
       return sendJson(res, 500, { ok: false, error: "Gagal memuat state permainan." });
     }
@@ -16,7 +38,7 @@ module.exports = async function handler(req, res) {
     try {
       const body = await parseJsonBody(req);
       const resData = await applyAction(body);
-      return sendJson(res, resData.code || 200, resData);
+      return sendJson(res, resData.code || 200, resData, { "X-LB-Storage": resData.storage || STORAGE_KIND });
     } catch (e) {
       return sendJson(res, 400, { ok: false, status: "error", error: "JSON tidak valid." });
     }
