@@ -3822,6 +3822,45 @@ DAFTAR BAGIAN (SECTIONS):
       height: 48px;
       color: var(--crim)
     }
+
+    .pzc button,
+    .pzc .cl,
+    .pzc .pz-btn {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px !important;
+      width: 100% !important;
+      min-height: 48px !important;
+      padding: 12px 22px !important;
+      margin-top: 16px !important;
+      border-radius: 12px !important;
+      font-family: var(--f-d) !important;
+      font-size: 1.05rem !important;
+      font-weight: 800 !important;
+      background: linear-gradient(135deg, #15803D 0%, #166534 100%) !important;
+      color: #FFFFFF !important;
+      border: 2px solid #14532D !important;
+      box-shadow: 0 4px 14px rgba(22, 101, 52, 0.35), 0 2px 0 #14532D !important;
+      cursor: pointer !important;
+      transition: transform .12s ease, background .12s ease, box-shadow .12s ease !important
+    }
+
+    .pzc button:hover,
+    .pzc .cl:hover,
+    .pzc .pz-btn:hover {
+      background: linear-gradient(135deg, #16A34A 0%, #15803D 100%) !important;
+      color: #FFFFFF !important;
+      transform: translateY(-1px) !important;
+      box-shadow: 0 6px 18px rgba(22, 101, 52, 0.42), 0 3px 0 #14532D !important
+    }
+
+    .pzc button:active,
+    .pzc .cl:active,
+    .pzc .pz-btn:active {
+      transform: translateY(1px) !important;
+      box-shadow: 0 2px 6px rgba(22, 101, 52, 0.3) !important
+    }
   </style>
 </head>
 
@@ -4642,7 +4681,8 @@ DAFTAR BAGIAN (SECTIONS):
       let el = document.getElementById("pzov"); const on = !!(G && G.pause && !G.over && (!isAdminPage() || ADMIN_AUTH)), key = on + "|" + (ADMIN ? 1 : 0);
       if (!el) { el = document.createElement("div"); el.id = "pzov"; document.body.appendChild(el) }
       if (key === pzKey) return; pzKey = key; el.style.display = on ? "flex" : "none";
-      el.innerHTML = on ? `<div class="pzc" role="alertdialog" aria-label="Permainan dijeda"><div class="pzi">${PAUIC}</div><h2>Permainan dijeda</h2><p>Jam permainan dan semua timer berhenti. ${ADMIN ? "Tekan Lanjutkan untuk meneruskan permainan." : "Tunggu admin melanjutkan permainan."}</p>${ADMIN ? `<button class="cl" onclick="resumeGame()">Lanjutkan</button>` : ""}</div>` : ""
+      const canResume = ADMIN || isAdminPage();
+      el.innerHTML = on ? `<div class="pzc" role="alertdialog" aria-label="Permainan dijeda"><div class="pzi">${PAUIC}</div><h2>Permainan Dijeda</h2><p style="margin:8px 0 16px;line-height:1.5;color:var(--tx)">Jam permainan dan semua timer berhenti. ${canResume ? "Tekan tombol di bawah untuk melanjutkan permainan." : "Tunggu admin melanjutkan permainan."}</p>${canResume ? `<button type="button" class="cl pz-btn" onclick="resumeGame()">▶ Lanjutkan Permainan</button>` : ""}</div>` : ""
     }
     setInterval(() => { if (typeof document !== "undefined" && document.hidden) return; try { pzSync() } catch (e) { } }, 400);
     function saveClock() { const g = clone(G), m = Math.max(0, +$("cl_m").value || 0), s = Math.min(59, Math.max(0, +$("cl_s").value || 0)); g.t0 = Date.now() - (m * 60 + s) * 1000; g.tmin = Math.max(1, +$("cl_t").value || TARGET_MIN); saveG(g); toast("Waktu permainan disimpan.") }
@@ -5678,7 +5718,7 @@ DAFTAR BAGIAN (SECTIONS):
       else if (MODE == "db") h += `<div class="box" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><b>Akses Pemain (LAN / Wi-Fi)</b><div class="mu">Pemain memindai QR tim atau masuk di menu Tim dengan kode 4 angka.</div></div><a class="wbtn" href="barcode.html" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;min-height:40px">Buka QR &amp; PIN</a></div>`;
       else h += `<div class="warn">Halaman Admin/Dashboard</div>`;
       h += `<h3>Kata Sandi Operator</h3><div class="box"><p class="mu" style="margin-top:0">Kata sandi untuk masuk halaman Operator.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;align-items:flex-end"><div><label for="c_apw_quick" style="display:block;font-weight:700;color:var(--deep);margin-bottom:6px">Kata Sandi Baru</label><input id="c_apw_quick" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="${esc(c.adminPass || "1234")}" placeholder="Kata sandi baru" oninput="if($('c_apw'))$('c_apw').value=this.value" style="width:100%;min-height:42px;background:#FFFFFF;color:var(--tx);border:1.5px solid var(--shd)"></div><div><button type="button" class="wbtn" onclick="saveAdminPassQuick()" style="min-height:42px;width:100%;padding:10px 18px">Simpan Kata Sandi</button></div></div></div>`;
-      h += `<h3>Sesi &amp; Waktu Permainan</h3><div class="box"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;align-items:center;padding-bottom:14px;border-bottom:1px solid rgba(109,40,217,0.18)"><div><span class="mu sm">Putaran Sesi</span><div style="font-size:1.35rem;font-weight:800;color:var(--deep)">Putaran ke-${G.round} ${G.over ? `<span class="dn" style="font-size:0.9rem">(Selesai)</span>` : `<span class="up" style="font-size:0.9rem">(Aktif)</span>`}</div><div style="display:flex;gap:6px;margin-top:6px"><button class="mini" onclick="setRound(-1)" style="min-height:40px;min-width:40px">− Putaran</button><button class="mini" onclick="setRound(1)" style="min-height:40px;min-width:40px">+ Putaran</button></div></div><div><span class="mu sm">Waktu Berjalan</span><div style="font-size:1.50rem;font-weight:800;color:var(--crim);font-variant-numeric:tabular-nums;margin-top:2px"><span id="gclockAdm">${G.t0 ? fmtT(NOW() - G.t0) : "00:00"}</span></div><div class="mu sm" style="margin-top:2px">Target: ${targetMin()} menit / ${TARGET_YEARS} tahun</div></div><div><span class="mu sm">Kendali Waktu</span><div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="wbtn timer-reset-btn" onclick="resetGameTimer()" style="min-height:40px;padding:8px 16px;font-size:13px;flex:1">↺ Reset 00:00</button>${G.pause ? `<button type="button" class="wbtn" onclick="resumeGame()" style="min-height:40px;padding:8px 14px;font-size:13px">▶ Lanjutkan</button>` : `<button type="button" onclick="pauseGame()" ${G.over ? "disabled" : ""} style="min-height:40px;padding:8px 14px;font-size:13px">⏸ Jeda</button>`}</div></div></div><div class="frm" style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button onclick="openModal({type:'manual'})" style="min-height:40px">Transaksi Manual</button>${G.over ? `<button onclick="reopen()" style="min-height:40px">Buka Lagi</button>` : `<button onclick="endGame()" style="min-height:40px">Akhiri Permainan</button>`}<button onclick="newGame()" style="min-height:40px">Permainan Baru</button></div></div>`;
+      h += `<h3>Sesi &amp; Waktu Permainan</h3><div class="box"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;align-items:center;padding-bottom:14px;border-bottom:1px solid rgba(109,40,217,0.18)"><div><span class="mu sm">Putaran Sesi</span><div style="font-size:1.35rem;font-weight:800;color:var(--deep)">Putaran ke-${G.round} ${G.over ? `<span class="dn" style="font-size:0.9rem">(Selesai)</span>` : `<span class="up" style="font-size:0.9rem">(Aktif)</span>`}</div><div style="display:flex;gap:6px;margin-top:6px"><button class="mini" onclick="setRound(-1)" style="min-height:40px;min-width:40px">− Putaran</button><button class="mini" onclick="setRound(1)" style="min-height:40px;min-width:40px">+ Putaran</button></div></div><div><span class="mu sm">Waktu Berjalan</span><div style="font-size:1.50rem;font-weight:800;color:var(--crim);font-variant-numeric:tabular-nums;margin-top:2px"><span id="gclockAdm">${G.t0 ? fmtT(NOW() - G.t0) : "00:00"}</span></div><div class="mu sm" style="margin-top:2px">Target: ${targetMin()} menit / ${TARGET_YEARS} tahun</div></div><div><span class="mu sm">Kendali Waktu</span><div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="wbtn timer-reset-btn" onclick="resetGameTimer()" style="min-height:40px;padding:8px 16px;font-size:13px;flex:1">↺ Reset 00:00</button>${G.pause ? `<button type="button" class="wbtn" onclick="resumeGame()" style="min-height:40px;padding:8px 14px;font-size:13px;background:#15803D;color:#FFFFFF;border-color:#166534">▶ Lanjutkan</button>` : `<button type="button" class="wbtn" onclick="pauseGame()" ${G.over ? "disabled" : ""} style="min-height:40px;padding:8px 14px;font-size:13px;background:#FEF9C3;color:var(--deep);border:1.5px solid var(--deep)">⏸ Jeda</button>`}</div></div></div><div class="frm" style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button onclick="openModal({type:'manual'})" style="min-height:40px">Transaksi Manual</button>${G.over ? `<button onclick="reopen()" style="min-height:40px">Buka Lagi</button>` : `<button onclick="endGame()" style="min-height:40px">Akhiri Permainan</button>`}<button onclick="newGame()" style="min-height:40px">Permainan Baru</button></div></div>`;
       h += adminExtraH();
       h += `<h3>Tim dan Urutan Giliran</h3><div class="box">${G.order.map((id, i) => { const T = G.teams[id]; return `<div class="arow"><div class="ord"><button onclick="moveTeam('${id}',-1)" ${i ? "" : "disabled"} aria-label="Naikkan" style="min-height:40px">↑</button><button onclick="moveTeam('${id}',1)" ${i < G.order.length - 1 ? "" : "disabled"} aria-label="Turunkan" style="min-height:40px">↓</button></div><div class="grow"><input value="${esc(T.name)}" onchange="renTeam('${id}',this.value)" aria-label="Nama tim" style="min-height:40px"><div class="mu sm">Kode tim <b class="pin">${T.pin}</b> <button class="link" onclick="newPin('${id}')">ganti kode</button>${T.members.length ? ` · Pemain: ${T.members.map(m => `${esc(pname(m))} <button class="link" onclick="kick('${id}','${m}')">keluarkan</button>`).join(", ")}` : " · belum ada pemain"}</div><div class="mu sm">Lewati giliran: <button class="mini" onclick="setSkip('${id}',-1)">−</button> <b>${T.skip}</b> <button class="mini" onclick="setSkip('${id}',1)">+</button>${activeFx(T).map(f => ` · ${esc(f.label)} <button class="link" onclick="delFx('${id}','${f.id}')">hapus</button>`).join("")}</div>${vcs(T).filter(v => rem(v) > 0).length ? `<div class="mu sm">Voucher: ${vcs(T).filter(v => rem(v) > 0).map(v => `${esc(vcName(v).t)} ${esc(vcName(v).v)} <button class="link" onclick="delVc('${id}','${v.id}')">hapus</button>`).join(" · ")}</div>` : ""}</div><div class="ord"><button onclick="setTurn('${id}')" ${curTid() == id ? "disabled" : ""} style="min-height:40px">${curTid() == id ? "Giliran" : "Jadikan giliran"}</button><button onclick="delTeam('${id}')" style="min-height:40px">Hapus</button></div></div>` }).join("") || `<p class="mu">Belum ada tim.</p>`}
  <div class="frm" style="margin-top:12px"><input id="nt" placeholder="Nama tim baru" onkeydown="if(event.key=='Enter')addTeam()" style="min-height:40px"><button class="wbtn" onclick="addTeam()" style="min-height:40px">Tambah tim</button></div></div>`;
@@ -5992,7 +6032,7 @@ DAFTAR BAGIAN (SECTIONS):
       }, "Ya, reset waktu");
     }
     const fmtT = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0") };
-    const clockH = () => `<div class="clock" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>Waktu <b id="gclock">${G.t0 ? fmtT(NOW() - G.t0) : "00:00"}</b> <span class="mu sm">/ ${targetMin()}m</span>${G.pause && !G.over ? ` <span class="pzl">Dijeda</span>` : ""}</span>${ADMIN ? `<span style="display:inline-flex;gap:6px;align-items:center"><button type="button" class="mini pzb" onclick="pauseGame()" ${G.pause || G.over ? "disabled" : ""} title="Jeda waktu permainan" style="min-height:40px;padding:3px 10px">⏸ Jeda</button><button type="button" class="mini timer-reset-btn" onclick="resetGameTimer()" title="Reset waktu permainan ke 00:00" style="padding:3px 8px;font-size:12px;min-height:40px;min-width:40px">↺ Reset</button></span>` : ""}</div>`;
+    const clockH = () => `<div class="clock" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>Waktu <b id="gclock">${G.t0 ? fmtT(NOW() - G.t0) : "00:00"}</b> <span class="mu sm">/ ${targetMin()}m</span>${G.pause && !G.over ? ` <span class="pzl">Dijeda</span>` : ""}</span>${ADMIN ? `<span style="display:inline-flex;gap:6px;align-items:center">${G.pause ? `<button type="button" class="mini pzb pzb-resume" onclick="resumeGame()" title="Lanjutkan waktu permainan" style="min-height:40px;padding:3px 12px;background:#15803D;color:#FFFFFF;border-color:#166534;font-weight:800">▶ Lanjutkan</button>` : `<button type="button" class="mini pzb" onclick="pauseGame()" ${G.over ? "disabled" : ""} title="Jeda waktu permainan" style="min-height:40px;padding:3px 10px">⏸ Jeda</button>`}<button type="button" class="mini timer-reset-btn" onclick="resetGameTimer()" title="Reset waktu permainan ke 00:00" style="padding:3px 8px;font-size:12px;min-height:40px;min-width:40px">↺ Reset</button></span>` : ""}</div>`;
     setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       const t = G && G.t0 ? fmtT(NOW() - G.t0) : "00:00";
