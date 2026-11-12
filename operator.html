@@ -393,11 +393,21 @@ DAFTAR BAGIAN (SECTIONS):
       transition: background-color .15s ease, border-color .15s ease, transform .15s ease
     }
 
+    .top-acts {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: nowrap;
+      justify-content: flex-end
+    }
+
     .role.nav-more-btn {
       min-width: 44px;
       min-height: 40px;
       padding: 7px 11px;
-      gap: 4px
+      gap: 4px;
+      anchor-name: --nav-menu-btn
     }
 
     .nav-pop {
@@ -405,10 +415,13 @@ DAFTAR BAGIAN (SECTIONS):
       inset: auto;
       margin: 0;
       z-index: 120;
+      box-sizing: border-box;
       contain: layout style;
-      width: min(268px, calc(100% - 24px));
-      max-height: calc(100dvh - 80px);
+      width: min(268px, calc(100vw - 24px));
+      max-width: calc(100vw - 24px);
+      max-height: calc(100dvh - 24px);
       overflow-y: auto;
+      overscroll-behavior: contain;
       background: #FFFFFF;
       color: var(--tx);
       border: 1.5px solid rgba(109, 40, 217, 0.28);
@@ -418,8 +431,18 @@ DAFTAR BAGIAN (SECTIONS):
       display: none
     }
 
-    .nav-pop:is(:popover-open, .is-open) {
+    .nav-pop:is(:popover-open, .\:popover-open, .is-open) {
       display: block
+    }
+
+    @supports (position-area: block-end span-inline-start) and (anchor-name: --nav-menu-btn) {
+      .nav-pop {
+        position-anchor: --nav-menu-btn;
+        position-area: block-end span-inline-start;
+        position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+        margin: 6px 0;
+        max-height: calc(100dvh - 88px)
+      }
     }
 
     .nav-pop-hd {
@@ -5177,19 +5200,69 @@ DAFTAR BAGIAN (SECTIONS):
       const btn = typeof document !== "undefined" ? document.getElementById("navMenuBtn") : null;
       if (btn && btn.setAttribute) btn.setAttribute("aria-expanded", open ? "true" : "false");
     }
+    function hasNativeAnchorPos() {
+      return typeof CSS !== "undefined" && typeof CSS.supports === "function"
+        && CSS.supports("position-area", "block-end span-inline-start")
+        && CSS.supports("anchor-name", "--nav-menu-btn");
+    }
     function posNavPop(pop) {
-      const btn = typeof document !== "undefined" ? document.getElementById("navMenuBtn") : null;
       if (!pop || !pop.style) return;
-      if (btn && typeof btn.getBoundingClientRect === "function") {
-        const r = btn.getBoundingClientRect(), vw = window.innerWidth || 1280, vh = window.innerHeight || 720;
-        pop.style.top = Math.min(vh - 180, Math.max(8, r.bottom + 8)) + "px";
-        pop.style.right = Math.max(12, vw - r.right) + "px";
-        pop.style.left = "auto";
-      } else {
-        pop.style.top = "60px";
-        pop.style.right = "16px";
-        pop.style.left = "auto";
+      if (hasNativeAnchorPos()) {
+        pop.style.left = "";
+        pop.style.right = "";
+        pop.style.top = "";
+        pop.style.bottom = "";
+        pop.style.maxHeight = "";
+        return;
       }
+      const btn = typeof document !== "undefined" ? document.getElementById("navMenuBtn") : null;
+      const vw = (typeof window !== "undefined" && window.visualViewport && window.visualViewport.width) || (typeof document !== "undefined" && document.documentElement && document.documentElement.clientWidth) || (typeof window !== "undefined" && window.innerWidth) || 1280;
+      const vh = (typeof window !== "undefined" && window.visualViewport && window.visualViewport.height) || (typeof document !== "undefined" && document.documentElement && document.documentElement.clientHeight) || (typeof window !== "undefined" && window.innerHeight) || 720;
+      const pw = Math.min(pop.offsetWidth || 268, Math.max(180, vw - 24));
+      const ph = pop.offsetHeight || 280;
+      if (btn && typeof btn.getBoundingClientRect === "function") {
+        const r = btn.getBoundingClientRect();
+        const left = Math.round(Math.max(12, Math.min(r.right - pw, vw - pw - 12)));
+        const spaceBelow = vh - r.bottom - 16;
+        const spaceAbove = r.top - 16;
+        const openUp = spaceBelow < Math.min(ph, 240) && spaceAbove > spaceBelow;
+        const availH = Math.max(140, Math.round(openUp ? spaceAbove : spaceBelow));
+        const shownH = Math.min(ph, availH);
+        const top = openUp
+          ? Math.max(8, Math.round(r.top - 8 - shownH))
+          : Math.max(8, Math.round(Math.min(r.bottom + 8, vh - shownH - 8)));
+        pop.style.left = left + "px";
+        pop.style.right = "auto";
+        pop.style.bottom = "auto";
+        pop.style.top = top + "px";
+        pop.style.maxHeight = availH + "px";
+      } else {
+        pop.style.left = Math.max(12, Math.round(vw - pw - 12)) + "px";
+        pop.style.right = "auto";
+        pop.style.bottom = "auto";
+        pop.style.top = "60px";
+        pop.style.maxHeight = Math.max(160, Math.round(vh - 76)) + "px";
+      }
+    }
+    let navPopViewportBound = false;
+    function syncOpenNavPop() {
+      const pop = typeof document !== "undefined" ? document.getElementById("navPop") : null;
+      if (!pop) return;
+      const isOpen = (typeof pop.matches === "function" && pop.matches(":popover-open")) || (pop.classList && typeof pop.classList.contains === "function" && pop.classList.contains("is-open"));
+      if (!isOpen) return;
+      const btn = typeof document !== "undefined" ? document.getElementById("navMenuBtn") : null;
+      const vh = (typeof window !== "undefined" && window.visualViewport && window.visualViewport.height) || (typeof document !== "undefined" && document.documentElement && document.documentElement.clientHeight) || (typeof window !== "undefined" && window.innerHeight) || 720;
+      if (btn && typeof btn.getBoundingClientRect === "function") {
+        const r = btn.getBoundingClientRect();
+        if (r.bottom < 0 || r.top > vh) { closeNavPop(); return }
+      }
+      posNavPop(pop);
+    }
+    function bindNavViewportSync() {
+      if (navPopViewportBound || typeof window === "undefined" || typeof window.addEventListener !== "function") return;
+      navPopViewportBound = true;
+      window.addEventListener("resize", syncOpenNavPop, { passive: true });
+      window.addEventListener("scroll", syncOpenNavPop, { passive: true });
     }
     function closeNavPop() {
       const pop = typeof document !== "undefined" ? document.getElementById("navPop") : null;
@@ -5205,20 +5278,24 @@ DAFTAR BAGIAN (SECTIONS):
       if (e && e.stopPropagation) e.stopPropagation();
       const pop = typeof document !== "undefined" ? document.getElementById("navPop") : null;
       if (!pop) return;
-      posNavPop(pop);
+      bindNavViewportSync();
       if (typeof HTMLElement !== "undefined" && ("popover" in HTMLElement.prototype) && typeof pop.togglePopover === "function") {
         try {
           pop.togglePopover();
-          setNavExpanded(typeof pop.matches === "function" && pop.matches(":popover-open"));
+          const opened = typeof pop.matches === "function" && pop.matches(":popover-open");
+          if (opened) posNavPop(pop);
+          setNavExpanded(opened);
           return;
         } catch (err) { }
       }
       const open = (pop.classList && typeof pop.classList.toggle === "function") ? !!pop.classList.toggle("is-open") : false;
+      if (open) posNavPop(pop);
       setNavExpanded(open);
     }
     function bindNavPop() {
       const pop = typeof document !== "undefined" ? document.getElementById("navPop") : null;
       if (!pop || typeof pop.addEventListener !== "function") return;
+      bindNavViewportSync();
       pop.addEventListener("toggle", ev => {
         if (ev && ev.newState === "open") posNavPop(pop);
         setNavExpanded(!!(ev && ev.newState === "open"));
@@ -5239,7 +5316,7 @@ DAFTAR BAGIAN (SECTIONS):
       const moreBtn = `<button type="button" class="role nav-more-btn" id="navMenuBtn" onclick="toggleNavMenu(event)" aria-label="Menu navigasi" aria-expanded="false" aria-controls="navPop" title="Menu &amp; Navigasi"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg></button>`;
       const popActOut = ADMIN ? `<button type="button" class="danger" onclick="closeNavPop();logoutAdmin()">Keluar</button>` : (!admPage && me ? `<button type="button" onclick="closeNavPop();leaveTeam()">Ganti Tim</button>` : "");
       const popH = `<div id="navPop" class="nav-pop" popover="auto" aria-label="Menu navigasi">${hasGameNav ? `<div class="nav-pop-hd">Menu Halaman</div>${nav()}` : ""}<div class="nav-pop-acts" ${hasGameNav ? "" : `style="margin-top:0;padding-top:0;border-top:0"`}><button type="button" onclick="closeNavPop();openGuide()">Panduan Permainan</button>${popActOut}</div></div>`;
-      return `<header class="top"><div class="brand-row"><div class="brand-logo">${BRAND_SVG}<div class="ttl brand">Langkah Barakah</div></div>${tabBadge}<div class="mu">${s}</div></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${fsBtn}${moreBtn}${popH}</div></header>`
+      return `<header class="top"><div class="brand-row"><div class="brand-logo">${BRAND_SVG}<div class="ttl brand">Langkah Barakah</div></div>${tabBadge}<div class="mu">${s}</div></div><div class="top-acts">${fsBtn}${moreBtn}${popH}</div></header>`
     }
     function adminLoginV() {
       const show = !!U.showPw;
