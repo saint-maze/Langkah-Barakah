@@ -309,7 +309,7 @@ async function saveState(state) {
 
 async function checkAdminLogin(password) {
   const pw = String(password || "").trim();
-  const pkt = await getStatePacket();
+  const pkt = await getStatePacket({ bypassTtl: true });
   const state = pkt.state;
   const configured = String((state.G && state.G.cfg && state.G.cfg.adminPass) || DEFAULT_ADMIN_PASS).trim();
   const envPass = (process.env.ADMIN_PASSWORD || "").trim();
