@@ -1,27 +1,19 @@
 {
+  "framework": null,
+  "buildCommand": "mkdir -p dist && cp operator.html dist/index.html && cp operator.html dist/operator.html",
+  "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/", "destination": "/operator.html" },
-    { "source": "/admin", "destination": "/operator.html" },
-    { "source": "/operator", "destination": "/operator.html" },
-    { "source": "/play", "destination": "/play.html" },
-    { "source": "/qr", "destination": "/barcode.html" },
-    { "source": "/barcode", "destination": "/barcode.html" },
-    { "source": "/landing", "destination": "/landing.html" }
+    { "source": "/admin", "destination": "/index.html" },
+    { "source": "/operator", "destination": "/index.html" }
   ],
   "headers": [
     {
-      "source": "/(.*\\.html)",
+      "source": "/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
-      ]
-    },
-    {
-      "source": "/(.*\\.min\\.js)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     }
   ]
